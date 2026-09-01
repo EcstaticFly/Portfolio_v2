@@ -1,15 +1,16 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { Shell } from "@/components/section";
-import { site } from "@/content/site";
 import { ThemeToggle } from "@/components/theme-toggle";
+import { site } from "@/content/site";
 import { cn } from "@/lib/utils";
 
 const sections = [
+  { label: "Home", id: "home" },
   { label: "About", id: "about" },
   { label: "Experience", id: "experience" },
   { label: "Work", id: "work" },
@@ -17,22 +18,48 @@ const sections = [
   { label: "Contact", id: "contact" },
 ];
 
+/** Ignore sub-pixel scroll jitter so the bar doesn't flicker. */
+const THRESHOLD = 8;
+/** Always show the bar near the top of the page. */
+const TOP_ZONE = 90;
+
 export function SiteHeader() {
   const pathname = usePathname();
   const onHome = pathname === "/";
   const reduced = useReducedMotion();
+
   const [scrolled, setScrolled] = useState(false);
+  const [hidden, setHidden] = useState(false);
   const [open, setOpen] = useState(false);
   const [active, setActive] = useState("");
+  const lastY = useRef(0);
 
+  // Hide on the way down, reveal on the way up — the bar stays out of
+  // the way while reading and is one small scroll away when wanted.
   useEffect(() => {
-    const onScroll = () => setScrolled(window.scrollY > 24);
+    lastY.current = window.scrollY;
+
+    const onScroll = () => {
+      const y = window.scrollY;
+      setScrolled(y > 24);
+
+      if (y < TOP_ZONE) {
+        setHidden(false);
+      } else if (y > lastY.current + THRESHOLD) {
+        setHidden(true);
+      } else if (y < lastY.current - THRESHOLD) {
+        setHidden(false);
+      }
+
+      if (Math.abs(y - lastY.current) > THRESHOLD) lastY.current = y;
+    };
+
     onScroll();
     window.addEventListener("scroll", onScroll, { passive: true });
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
 
-  // Scroll-spy, home only. Marks the section occupying the middle band
+  // Scroll-spy, home only. Marks whichever section owns the middle band
   // of the viewport rather than the first one merely touching it.
   useEffect(() => {
     if (!onHome) return;
@@ -61,14 +88,29 @@ export function SiteHeader() {
     };
   }, [open]);
 
+  // Close the sheet on Escape, which is the expected way out.
+  useEffect(() => {
+    if (!open) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setOpen(false);
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [open]);
+
   const href = (id: string) => (onHome ? `#${id}` : `/#${id}`);
 
   return (
-    <header
+    <motion.header
+      initial={false}
+      animate={{ y: hidden && !open ? "-105%" : "0%" }}
+      transition={
+        reduced ? { duration: 0 } : { duration: 0.42, ease: [0.22, 1, 0.36, 1] }
+      }
       className={cn(
-        "fixed inset-x-0 top-0 z-40 transition-colors duration-500",
+        "fixed inset-x-0 top-0 z-50 transition-colors duration-500",
         scrolled || open
-          ? "border-b border-line bg-canvas/85 backdrop-blur-md"
+          ? "border-b border-line bg-canvas/90 backdrop-blur-md"
           : "border-b border-transparent"
       )}
     >
@@ -87,18 +129,11 @@ export function SiteHeader() {
                 key={s.id}
                 href={href(s.id)}
                 className={cn(
-                  "relative text-xs transition-colors duration-300 hover:text-ink",
+                  "link-rule text-xs transition-colors duration-300",
                   onHome && active === s.id ? "text-ink" : "text-muted"
                 )}
               >
                 {s.label}
-                <span
-                  aria-hidden="true"
-                  className={cn(
-                    "absolute -bottom-1.5 left-0 h-px bg-accent transition-all duration-500 ease-[cubic-bezier(0.22,1,0.36,1)]",
-                    onHome && active === s.id ? "w-full" : "w-0"
-                  )}
-                />
               </a>
             ))}
             <Link
@@ -118,26 +153,27 @@ export function SiteHeader() {
           <div className="flex items-center gap-3 md:hidden">
             <ThemeToggle />
             <button
-            type="button"
-            onClick={() => setOpen((v) => !v)}
-            aria-expanded={open}
-            aria-controls="mobile-nav"
-            className="text-xs text-muted transition-colors duration-300 hover:text-ink md:hidden"
-          >
-            {open ? "Close" : "Menu"}
+              type="button"
+              onClick={() => setOpen((v) => !v)}
+              aria-expanded={open}
+              aria-controls="mobile-nav"
+              className="flex h-8 items-center rounded-full border border-line bg-surface px-3.5 text-xs text-ink transition-colors duration-300 hover:border-accent"
+            >
+              {open ? "Close" : "Menu"}
             </button>
           </div>
         </div>
       </Shell>
 
-      <AnimatePresence>
+      <AnimatePresence initial={false}>
         {open ? (
           <motion.div
             id="mobile-nav"
+            key="mobile-nav"
             initial={reduced ? false : { height: 0, opacity: 0 }}
             animate={{ height: "auto", opacity: 1 }}
-            exit={reduced ? undefined : { height: 0, opacity: 0 }}
-            transition={{ duration: 0.32, ease: [0.22, 1, 0.36, 1] }}
+            exit={reduced ? { opacity: 0 } : { height: 0, opacity: 0 }}
+            transition={{ duration: 0.34, ease: [0.22, 1, 0.36, 1] }}
             className="overflow-hidden border-t border-line bg-canvas md:hidden"
           >
             <Shell>
@@ -147,7 +183,7 @@ export function SiteHeader() {
                     <a
                       href={href(s.id)}
                       onClick={() => setOpen(false)}
-                      className="block border-b border-line/60 py-4 text-sm text-muted"
+                      className="block border-b border-line py-4 text-sm text-ink"
                     >
                       {s.label}
                     </a>
@@ -167,6 +203,6 @@ export function SiteHeader() {
           </motion.div>
         ) : null}
       </AnimatePresence>
-    </header>
+    </motion.header>
   );
 }

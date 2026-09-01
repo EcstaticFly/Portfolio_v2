@@ -59,7 +59,7 @@ export function Platform({
             href={href}
             target="_blank"
             rel="noreferrer noopener"
-            className="link-rule mt-0.5 inline-block text-xs text-muted"
+            className="link-inline mt-1 inline-block text-sm"
           >
             {handle}
           </a>
@@ -80,7 +80,7 @@ export function Readings({
     <dl className="grid grid-cols-2 gap-x-8 gap-y-6 sm:grid-cols-4">
       {items.map((item) => (
         <div key={item.label} className="flex flex-col-reverse">
-          <dt className="mt-2 text-2xs text-muted">{item.label}</dt>
+          <dt className="mt-2 text-xs text-muted">{item.label}</dt>
           <dd className="font-display text-xl leading-none font-light text-ink">
             {item.value}
           </dd>

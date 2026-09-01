@@ -122,7 +122,7 @@ export function Donut({
               </span>
             </span>
           </span>
-          <span className="mt-1.5 text-2xs text-muted">{caption}</span>
+          <span className="mt-1.5 text-xs text-muted">{caption}</span>
         </div>
       </div>
 
@@ -132,7 +132,7 @@ export function Donut({
             key={band.label}
             className="flex items-center justify-between gap-6 border-b border-line pb-2 last:border-b-0"
           >
-            <dt className="flex items-center gap-2.5 text-xs text-muted">
+            <dt className="flex items-center gap-2.5 text-sm text-muted">
               <span
                 aria-hidden="true"
                 className="h-2.5 w-2.5 rounded-full"
@@ -140,7 +140,7 @@ export function Donut({
               />
               {band.label}
             </dt>
-            <dd className="text-sm text-ink">{formatNumber(band.value)}</dd>
+            <dd className="text-base text-ink">{formatNumber(band.value)}</dd>
           </div>
         ))}
       </dl>

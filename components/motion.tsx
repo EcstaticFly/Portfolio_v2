@@ -5,27 +5,28 @@ import type { ElementType, ReactNode } from "react";
 
 const EASE = [0.22, 1, 0.36, 1] as const;
 
-/* Shared viewport rule: fire a little before the element is fully in
-   view so the reveal reads as anticipation rather than as a delay. */
+/* Fire slightly before the element is fully in view, so the reveal reads
+   as anticipation rather than as a delay. */
 const VIEWPORT = { once: true, margin: "0px 0px -14% 0px" } as const;
 
 /* ── Text ─────────────────────────────────────────────────────────
-   Words rise out of a soft blur rather than fading. It reads as type
-   resolving into focus, which suits a serif display face and stays
-   smooth because only opacity, transform and filter are touched — all
-   compositor-friendly. */
-const wordContainer = (stagger: number, delay: number): Variants => ({
+   Letters roll up from behind a clipping edge, one after another. Each
+   character sits in its own overflow-hidden box and travels from 100%
+   to 0, so the type appears to turn into place rather than fade in.
+
+   Only `transform` animates, which the compositor handles on its own —
+   no layout, no paint, no filter. That is what keeps a headline of
+   fifty characters smooth. */
+const container = (stagger: number, delay: number): Variants => ({
   hidden: {},
   show: { transition: { staggerChildren: stagger, delayChildren: delay } },
 });
 
-const word: Variants = {
-  hidden: { opacity: 0, y: "0.42em", filter: "blur(9px)" },
+const glyph: Variants = {
+  hidden: { y: "105%" },
   show: {
-    opacity: 1,
-    y: "0em",
-    filter: "blur(0px)",
-    transition: { duration: 0.75, ease: EASE },
+    y: "0%",
+    transition: { duration: 0.62, ease: EASE },
   },
 };
 
@@ -34,26 +35,30 @@ interface AnimatedTextProps {
   as?: ElementType;
   className?: string;
   delay?: number;
+  /** Seconds between characters */
   stagger?: number;
-  /** Play on mount instead of waiting for the element to be scrolled to */
+  /** Play on mount instead of waiting to be scrolled to */
   onMount?: boolean;
 }
 
 /**
- * Reveals a line word by word. Reserved for headings and leads — running
- * body copy animates as a single block, because per-word motion on a
- * paragraph is both harder to read and needlessly expensive.
+ * Rolls a line into place letter by letter.
  *
- * The text stays a single accessible string: words are wrapped in inline
- * spans with real spaces between them, so screen readers and selection
- * behave normally.
+ * Reserved for headings and leads. Running body copy animates as a
+ * single block instead — per-character motion on a paragraph is harder
+ * to read and multiplies the node count for no benefit.
+ *
+ * The whole string is duplicated into a visually-hidden span so screen
+ * readers and copy-paste get clean text; the animated glyphs are marked
+ * aria-hidden. Words are kept in one box each so nothing breaks
+ * mid-word at a line end.
  */
 export function AnimatedText({
   text,
   as: Tag = "p",
   className,
   delay = 0,
-  stagger = 0.035,
+  stagger = 0.022,
   onMount = false,
 }: AnimatedTextProps) {
   const reduced = useReducedMotion();
@@ -65,25 +70,37 @@ export function AnimatedText({
 
   return (
     <Tag className={className}>
+      <span className="sr-only">{text}</span>
       <motion.span
+        aria-hidden="true"
         data-entrance=""
         className="inline"
-        variants={wordContainer(reduced ? 0 : stagger, reduced ? 0 : delay)}
+        variants={container(reduced ? 0 : stagger, reduced ? 0 : delay)}
         initial="hidden"
         {...play}
       >
-        {words.map((w, i) => (
-          <motion.span
-            key={`${w}-${i}`}
-            data-entrance=""
-            variants={word}
-            transition={reduced ? { duration: 0 } : undefined}
-            className="inline-block whitespace-pre"
-            style={{ willChange: "transform, opacity, filter" }}
-          >
-            {w}
-            {i < words.length - 1 ? " " : ""}
-          </motion.span>
+        {words.map((word, w) => (
+          <span key={`${word}-${w}`} className="inline-block whitespace-pre">
+            {[...word].map((ch, c) => (
+              <span
+                key={`${ch}-${c}`}
+                // The clipping edge. Padding plus a matching negative
+                // margin gives descenders room without adding height.
+                className="inline-block overflow-hidden align-bottom"
+                style={{ paddingBottom: "0.16em", marginBottom: "-0.16em" }}
+              >
+                <motion.span
+                  data-entrance=""
+                  className="inline-block"
+                  variants={glyph}
+                  transition={reduced ? { duration: 0 } : undefined}
+                >
+                  {ch}
+                </motion.span>
+              </span>
+            ))}
+            {w < words.length - 1 ? " " : ""}
+          </span>
         ))}
       </motion.span>
     </Tag>
@@ -100,8 +117,8 @@ interface RevealProps {
 }
 
 /**
- * The standard block reveal: a short rise out of a light blur, matching
- * the text treatment so the whole page shares one gesture.
+ * The standard block reveal: a short rise, matching the direction the
+ * letters travel so the whole page shares one gesture.
  */
 export function Reveal({
   children,
@@ -116,8 +133,8 @@ export function Reveal({
     <Component
       data-entrance=""
       className={className}
-      initial={{ opacity: 0, y: 16, filter: "blur(6px)" }}
-      whileInView={{ opacity: 1, y: 0, filter: "blur(0px)" }}
+      initial={{ opacity: 0, y: 18 }}
+      whileInView={{ opacity: 1, y: 0 }}
       viewport={VIEWPORT}
       transition={
         reduced ? { duration: 0 } : { duration: 0.6, ease: EASE, delay }
@@ -164,12 +181,11 @@ export function Stagger({
 }
 
 const itemVariants: Variants = {
-  hidden: { opacity: 0, y: 18, filter: "blur(6px)" },
+  hidden: { opacity: 0, y: 20 },
   show: {
     opacity: 1,
     y: 0,
-    filter: "blur(0px)",
-    transition: { duration: 0.6, ease: EASE },
+    transition: { duration: 0.58, ease: EASE },
   },
 };
 

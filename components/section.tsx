@@ -35,8 +35,8 @@ export function Section({
       <Shell>
         <div className="grid gap-y-10 py-20 md:grid-cols-[var(--spacing-rail)_1fr] md:gap-x-gutter md:py-section">
           <Reveal className="md:sticky md:top-28 md:self-start">
-            <h2 className="text-xs text-muted">{label}</h2>
-            {meta ? <p className="mt-2 text-2xs text-muted">{meta}</p> : null}
+            <h2 className="text-sm text-muted">{label}</h2>
+            {meta ? <p className="mt-2 text-xs text-muted">{meta}</p> : null}
           </Reveal>
           <div className="min-w-0">{children}</div>
         </div>

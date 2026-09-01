@@ -2,6 +2,7 @@ import {
   STATS_REVALIDATE,
   type LeetCodeStats,
   type RatingPoint,
+  type TopicCount,
 } from "./types";
 
 const ENDPOINT = "https://leetcode.com/graphql";
@@ -17,6 +18,11 @@ const QUERY = `
       username
       profile { ranking }
       submitStatsGlobal { acSubmissionNum { difficulty count } }
+      tagProblemCounts {
+        advanced { tagName problemsSolved }
+        intermediate { tagName problemsSolved }
+        fundamental { tagName problemsSolved }
+      }
     }
     userContestRanking(username: $username) {
       rating
@@ -39,12 +45,22 @@ interface DifficultyCount {
   count: number;
 }
 
+interface TagCount {
+  tagName: string;
+  problemsSolved: number;
+}
+
 interface LeetCodeResponse {
   data?: {
     matchedUser: {
       username: string;
       profile: { ranking: number | null } | null;
       submitStatsGlobal: { acSubmissionNum: DifficultyCount[] } | null;
+      tagProblemCounts: {
+        advanced: TagCount[];
+        intermediate: TagCount[];
+        fundamental: TagCount[];
+      } | null;
     } | null;
     userContestRanking: {
       rating: number | null;
@@ -106,6 +122,19 @@ export async function getLeetCode(
         rank: h.ranking,
       }));
 
+    // LeetCode splits tags across three bands; the band is an editorial
+    // grouping of its own, not part of the count, so they are merged and
+    // ranked purely by how many problems were solved.
+    const tagGroups = user.tagProblemCounts;
+    const topics: TopicCount[] = [
+      ...(tagGroups?.fundamental ?? []),
+      ...(tagGroups?.intermediate ?? []),
+      ...(tagGroups?.advanced ?? []),
+    ]
+      .filter((t) => t.problemsSolved > 0)
+      .map((t) => ({ name: t.tagName, solved: t.problemsSolved }))
+      .sort((a, b) => b.solved - a.solved);
+
     return {
       handle: user.username,
       solved: pick(solved, "All"),
@@ -125,6 +154,7 @@ export async function getLeetCode(
       topPercentage: contest?.topPercentage ?? null,
       profileRanking: user.profile?.ranking ?? null,
       history,
+      topics,
     };
   } catch {
     return null;

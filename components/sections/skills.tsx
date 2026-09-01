@@ -1,6 +1,6 @@
 import * as simpleIcons from "simple-icons";
 import { Section, Lead } from "@/components/section";
-import { Stagger, StaggerItem } from "@/components/motion";
+import { Reveal } from "@/components/motion";
 import { skills, type Skill } from "@/content/skills";
 
 interface IconData {
@@ -23,62 +23,116 @@ function lookup(slug: string | null): IconData | null {
   return icon ?? null;
 }
 
-/**
- * Marks are drawn in `currentColor`, not their brand colours. Thirty
- * saturated logos would fight the palette and each other; in one ink
- * they read as a set, and they invert with the theme for free.
- */
-function SkillMark({ skill }: { skill: Skill }) {
-  const icon = lookup(skill.icon);
+interface Entry {
+  skill: Skill;
+  group: string;
+}
+
+function SkillCard({ entry }: { entry: Entry }) {
+  const icon = lookup(entry.skill.icon);
 
   return (
-    <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-line bg-surface text-muted transition-colors duration-300 group-hover:border-accent group-hover:text-accent">
-      {icon ? (
-        <svg
-          viewBox="0 0 24 24"
-          aria-hidden="true"
-          className="h-4 w-4"
-          fill="currentColor"
-        >
-          <path d={icon.path} />
-        </svg>
-      ) : (
-        <span className="font-display text-xs leading-none font-normal">
-          {skill.name.slice(0, 2)}
+    <div className="group flex shrink-0 items-center gap-3.5 rounded-xl border border-line bg-accent-wash px-5 py-3.5 transition-colors duration-300 hover:border-accent">
+      <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-line bg-canvas text-muted transition-colors duration-300 group-hover:border-accent group-hover:text-accent">
+        {icon ? (
+          <svg
+            viewBox="0 0 24 24"
+            aria-hidden="true"
+            className="h-5 w-5"
+            fill="currentColor"
+          >
+            <path d={icon.path} />
+          </svg>
+        ) : (
+          <span className="font-display text-sm leading-none font-normal">
+            {entry.skill.name.slice(0, 2)}
+          </span>
+        )}
+      </span>
+
+      <span>
+        <span className="block text-sm leading-snug whitespace-nowrap text-ink transition-colors duration-300 group-hover:text-accent">
+          {entry.skill.name}
         </span>
-      )}
-    </span>
+        <span className="mt-0.5 block text-2xs whitespace-nowrap text-muted">
+          {entry.group}
+        </span>
+      </span>
+    </div>
+  );
+}
+
+/**
+ * One row of the marquee. The list is rendered twice: the animation
+ * translates exactly -50%, so the second copy is mid-frame at the moment
+ * it wraps and the seam is invisible. The duplicate is hidden from
+ * assistive tech so the skills are announced once.
+ */
+function MarqueeRow({
+  entries,
+  direction,
+  seconds,
+}: {
+  entries: Entry[];
+  direction: "left" | "right";
+  seconds: number;
+}) {
+  return (
+    <div className="marquee-viewport overflow-hidden">
+      <div
+        className="marquee-track flex gap-3"
+        data-dir={direction}
+        style={{ animationDuration: `${seconds}s` }}
+      >
+        {[0, 1].map((copy) => (
+          <div
+            key={copy}
+            className="flex shrink-0 gap-3"
+            aria-hidden={copy === 1 ? "true" : undefined}
+          >
+            {entries.map((entry) => (
+              <SkillCard
+                key={`${copy}-${entry.group}-${entry.skill.name}`}
+                entry={entry}
+              />
+            ))}
+          </div>
+        ))}
+      </div>
+    </div>
   );
 }
 
 export function Skills() {
+  const all: Entry[] = skills.flatMap((group) =>
+    group.items.map((skill) => ({ skill, group: group.label }))
+  );
+
+  // Split by alternating rather than in half, so both rows carry a mix
+  // of groups instead of one being all languages and the other all
+  // tooling.
+  const rowA = all.filter((_, i) => i % 2 === 0);
+  const rowB = all.filter((_, i) => i % 2 === 1);
+
   return (
-    <Section id="skills" label="Skills" meta="Grouped by what they do">
+    <Section id="skills" label="Skills" meta={`${all.length} tools and topics`}>
       <Lead>What I reach for, roughly in the order I reach for it.</Lead>
 
-      <div className="mt-12">
-        {skills.map((group) => (
-          <div
-            key={group.label}
-            className="grid gap-x-gutter gap-y-5 border-t border-line py-8 md:grid-cols-[13rem_1fr]"
-          >
-            <h3 className="text-xs text-muted">{group.label}</h3>
+      <Reveal delay={0.05}>
+        {/* Full-bleed. The rows escape the section's content column and
+            run the whole viewport width, which is what makes the drift
+            read as continuous rather than as a widget in a box. Paired
+            with `overflow-x: clip` on the body so 100vw never introduces
+            a horizontal scrollbar. */}
+        <div className="relative left-1/2 mt-12 flex w-screen -translate-x-1/2 flex-col gap-3">
+          <MarqueeRow entries={rowA} direction="left" seconds={64} />
+          <MarqueeRow entries={rowB} direction="right" seconds={78} />
+        </div>
+      </Reveal>
 
-            <Stagger className="flex flex-wrap gap-2.5" stagger={0.035}>
-              {group.items.map((skill) => (
-                <StaggerItem key={`${group.label}-${skill.name}`}>
-                  <span className="group flex cursor-default items-center gap-2.5 rounded-xl border border-line bg-surface/60 py-1.5 pr-4 pl-1.5 transition-colors duration-300 hover:border-accent">
-                    <SkillMark skill={skill} />
-                    <span className="text-sm whitespace-nowrap text-ink transition-colors duration-300 group-hover:text-accent">
-                      {skill.name}
-                    </span>
-                  </span>
-                </StaggerItem>
-              ))}
-            </Stagger>
-          </div>
-        ))}
-      </div>
+      <p className="mt-6 text-xs text-muted">
+        Hover to slow the rows down.
+      </p>
     </Section>
   );
 }

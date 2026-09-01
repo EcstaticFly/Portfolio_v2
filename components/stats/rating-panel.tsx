@@ -88,7 +88,7 @@ export function RatingPanel({ series }: { series: RatingSeries[] }) {
                 setActiveId(s.id);
                 setHover(null);
               }}
-              className={`relative px-4 py-2.5 text-xs transition-colors duration-300 ${
+              className={`relative px-4 py-3 text-sm transition-colors duration-300 ${
                 selected
                   ? "font-medium text-ink"
                   : "text-muted hover:text-ink"
@@ -140,7 +140,7 @@ export function RatingPanel({ series }: { series: RatingSeries[] }) {
             },
           ].map((r) => (
             <div key={r.label} className="flex flex-col-reverse">
-              <dt className="mt-1.5 text-2xs text-muted">{r.label}</dt>
+              <dt className="mt-2 text-xs text-muted">{r.label}</dt>
               <dd className="font-display text-2xl leading-none font-light text-ink">
                 {r.value}
               </dd>
@@ -250,7 +250,7 @@ export function RatingPanel({ series }: { series: RatingSeries[] }) {
             ) : null}
           </svg>
 
-          <figcaption className="mt-3 flex flex-wrap items-baseline justify-between gap-x-6 gap-y-1 text-2xs text-muted">
+          <figcaption className="mt-4 flex flex-wrap items-baseline justify-between gap-x-6 gap-y-1.5 text-sm text-muted">
             <span>
               {point
                 ? `${point.point.label} — ${point.point.rating}${

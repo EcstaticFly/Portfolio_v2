@@ -146,11 +146,11 @@ Everything else is a 360ms, 10px reveal that is meant to go unnoticed,
 plus hover states and the count-up on `/stats`.
 
 Motion is deliberately consistent: one gesture, used everywhere. Text
-rises out of a soft blur word by word (`AnimatedText`); blocks and list
-rows do the same thing as a unit, cascading one after another as their
-section scrolls into view (`Stagger` / `StaggerItem`). Only opacity,
-transform and filter are touched, all of which the compositor handles,
-so nothing here forces layout. Per-word motion is reserved for headings
+rolls up letter by letter from behind a clipping edge (`AnimatedText`);
+blocks and list rows rise the same direction as a unit, cascading one
+after another as their section scrolls into view (`Stagger` /
+`StaggerItem`). Only `transform` and `opacity` are animated — no filters,
+no width or height — so every frame stays on the compositor. Per-word motion is reserved for headings
 and leads — running paragraphs animate as a single block, because
 word-by-word body copy is both harder to read and needlessly expensive.
 
@@ -177,16 +177,69 @@ timings; the CSS is the guarantee.
 
 ## Local development
 
-If the dev server renders a blank page while the production build is
-fine, suspect a devtools extension before suspecting the code. The
-Console Ninja VS Code extension instruments Turbopack chunks and, in its
-preview support, can truncate them — the vendor bundles then throw
-`SyntaxError`, React never hydrates, and every animated element stays in
-its hidden server-rendered state. Pause the extension, delete `.next`
-(the truncated chunk is cached on disk), and restart. The failsafe above
-also covers this case after four seconds.
+```bash
+npm run dev           # Turbopack (fast)
+npm run dev:webpack   # slower first compile, immune to the issue below
+```
+
+**If interactive things are dead in dev but fine in `npm run build && npm start`,
+it is the editor, not the code.** The Console Ninja VS Code extension
+instruments Turbopack chunks and, in its preview-quality Turbopack
+support, truncates them — `next/dist/client` and `react-dom` arrive cut
+off mid-expression, throw `SyntaxError`, and React never hydrates. The
+symptoms are specific and easy to misread as separate bugs: the theme
+toggle does nothing, the mobile menu does nothing, chart tabs do
+nothing, and all text appears at once with no animation (that last one
+is the four-second CSS failsafe below doing its job).
+
+To confirm it in ten seconds, fetch a vendor chunk and check it parses:
+
+```bash
+curl -s http://localhost:3000/_next/static/chunks/node_modules_next_dist_client_0_*.js -o /tmp/c.js
+node --check /tmp/c.js          # SyntaxError => truncated
+grep -c oo_tx /tmp/c.js         # >0 => Console Ninja instrumented it
+```
+
+Two fixes, either works: pause the extension (Command Palette → *Console
+Ninja: Pause*), delete `.next` since the truncated chunk is cached on
+disk, and restart; or just run `npm run dev:webpack`, which is verified
+to hydrate correctly even with the extension active.
+
+## Theme default
+
+Dark is the explicit default for a first-time visitor, set by the
+blocking script in `<head>` regardless of the OS setting. A stored choice
+always wins. Change the two `"dark"` literals in
+`components/theme-script.tsx` (and the matching initial state in
+`components/theme-toggle.tsx`) to flip it.
+
+## Hero
+
+Three pieces sit on top of each other:
+
+- **`hero-backdrop.tsx`** — atmosphere. Depth comes from parallax, not
+  perspective: four layers translate at different fractions of the
+  pointer (roughly 14 / 38 / 72 px of travel), so near layers outrun far
+  ones and the eye reads separation. A soft light tracks the cursor on a
+  faster spring, and a fine inlined SVG grain keeps the gradients from
+  reading as flat CSS blobs. Every colour is mixed from the theme
+  tokens, so it re-themes for free. Transform-only, and it does not run
+  at all on coarse pointers or under `prefers-reduced-motion`.
+- **The portrait** — `public/profile_pic.jpeg`, circular, with a hairline
+  ring and an accent halo. It is the LCP element, so it carries
+  `priority`. To swap it, replace the file and keep the square aspect;
+  anything non-square will crop from the centre.
+- **The type** — name rolling in letter by letter, then the rule, copy
+  and live figures in sequence.
 
 ## Skills
+
+Two full-bleed marquee rows drift in opposite directions at different
+speeds, slowing to a crawl on hover. The loop is pure CSS: each row
+renders its cards twice and translates exactly `-50%`, so the wrap lands
+on an identical frame with no JavaScript ticking per frame. Under
+`prefers-reduced-motion` the animation is dropped and the rows become
+ordinary horizontal scrollers.
 
 `content/skills.ts` carries a [simple-icons](https://simpleicons.org)
 slug per entry. Icons are resolved **on the server**, so only the handful

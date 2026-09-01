@@ -6,6 +6,10 @@ import { Figure } from "@/components/stats/figure";
 import { Donut, type Band } from "@/components/stats/donut";
 import { RatingPanel } from "@/components/stats/rating-panel";
 import { Platform, Readings, Unavailable } from "@/components/stats/platform";
+import { ContestRatings, type RatingCard } from "@/components/stats/contest-ratings";
+import { Awards, type Award } from "@/components/stats/awards";
+import { TopicChart } from "@/components/stats/topics";
+import { achievements } from "@/content/achievements";
 import {
   getStats,
   totalSolved,
@@ -105,6 +109,67 @@ export default async function StatsPage() {
     { label: "CodeChef", value: stats.codechef?.solved ?? 0, tone: "mid" },
   ];
   const cpTotal = cp.reduce((a, b) => a + b.value, 0);
+
+  // The combined view: DSA practice against rated-contest problems.
+  const combined: Band[] = [
+    { label: "DSA practice", value: dsaTotal, tone: "mid" },
+    { label: "Competitive judges", value: cpTotal, tone: "full" },
+  ];
+
+  // Ratings as their own set of cards, each with a profile link.
+  const ratingCardSlots: (RatingCard | null)[] = [
+    stats.leetcode?.contestRating
+      ? {
+          name: "LeetCode",
+          icon: "leetcode",
+          handle: handles.leetcode,
+          href: `https://leetcode.com/u/${handles.leetcode}/`,
+          current: round(stats.leetcode.contestRating),
+          peak: stats.leetcode.maxContestRating
+            ? round(stats.leetcode.maxContestRating)
+            : null,
+          tier: stats.leetcode.topPercentage
+            ? `Top ${stats.leetcode.topPercentage.toFixed(1)}%`
+            : null,
+          contests: stats.leetcode.contestsAttended ?? 0,
+        }
+      : null,
+    stats.codechef?.rating
+      ? {
+          name: "CodeChef",
+          icon: "codechef",
+          handle: handles.codechef,
+          href: `https://www.codechef.com/users/${handles.codechef}`,
+          current: stats.codechef.rating,
+          peak: stats.codechef.maxRating,
+          tier: stats.codechef.stars ? `${stats.codechef.stars}★` : null,
+          contests: stats.codechef.contests,
+        }
+      : null,
+    stats.codeforces?.rating
+      ? {
+          name: "Codeforces",
+          icon: "codeforces",
+          handle: handles.codeforces,
+          href: `https://codeforces.com/profile/${handles.codeforces}`,
+          current: stats.codeforces.rating,
+          peak: stats.codeforces.maxRating,
+          tier: stats.codeforces.rank
+            ? stats.codeforces.rank.replace(/^\w/, (c) => c.toUpperCase())
+            : null,
+          contests: stats.codeforces.contests,
+        }
+      : null,
+  ];
+
+  const ratingCards = ratingCardSlots.filter(
+    (c): c is RatingCard => c !== null
+  );
+
+  const awards: Award[] = achievements.map((a) => ({
+    ...a,
+    weight: a.weight ?? 0.6,
+  }));
 
   return (
     <>
@@ -213,9 +278,18 @@ export default async function StatsPage() {
       <Section id="breakdown" label="Problems" meta="By difficulty and by judge">
         <Lead>Where the solved problems actually sit.</Lead>
 
-        <div className="mt-10 grid gap-x-gutter gap-y-12 lg:grid-cols-2">
+        {solved > 0 ? (
+          <Reveal className="mt-10 border-b border-line pb-12">
+            <h3 className="mb-6 text-sm text-muted">
+              Everything combined
+            </h3>
+            <Donut bands={combined} total={solved} caption="total" />
+          </Reveal>
+        ) : null}
+
+        <div className="mt-12 grid gap-x-gutter gap-y-12 lg:grid-cols-2">
           <Reveal>
-            <h3 className="mb-6 text-xs text-muted">
+            <h3 className="mb-6 text-sm text-muted">
               Data structures and algorithms
             </h3>
             {dsaTotal > 0 ? (
@@ -226,13 +300,60 @@ export default async function StatsPage() {
           </Reveal>
 
           <Reveal delay={0.1}>
-            <h3 className="mb-6 text-xs text-muted">Competitive programming</h3>
+            <h3 className="mb-6 text-sm text-muted">Competitive programming</h3>
             {cpTotal > 0 ? (
               <Donut bands={cp} total={cpTotal} caption="solved" />
             ) : (
               <Unavailable platform="Codeforces and CodeChef" />
             )}
           </Reveal>
+        </div>
+      </Section>
+
+      {stats.leetcode && stats.leetcode.topics.length > 0 ? (
+        <Section
+          id="topics"
+          label="Topic analysis"
+          meta={`${stats.leetcode.topics.length} tags with at least one solve`}
+        >
+          <Lead>Which corners of the subject I have actually spent time in.</Lead>
+          <Reveal delay={0.06} className="mt-10">
+            <TopicChart topics={stats.leetcode.topics} limit={10} />
+          </Reveal>
+          <Reveal delay={0.1}>
+            <p className="mt-8 max-w-[62ch] text-sm text-muted">
+              Tag counts come from LeetCode, the one platform of the five that
+              publishes a per-topic breakdown.
+            </p>
+          </Reveal>
+        </Section>
+      ) : null}
+
+      <Section
+        id="ratings"
+        label="Contest ratings"
+        meta="Current and peak, per platform"
+      >
+        <Lead>Where each rating actually stands today.</Lead>
+        {ratingCards.length > 0 ? (
+          <div className="mt-10">
+            <ContestRatings cards={ratingCards} />
+          </div>
+        ) : (
+          <div className="mt-8">
+            <Unavailable platform="Every rating platform" />
+          </div>
+        )}
+      </Section>
+
+      <Section
+        id="awards"
+        label="Recognition"
+        meta={`${awards.length} results`}
+      >
+        <Lead>Contest results, measured by how far they went.</Lead>
+        <div className="mt-10">
+          <Awards awards={awards} />
         </div>
       </Section>
 
@@ -426,7 +547,7 @@ export default async function StatsPage() {
         </Stagger>
 
         <Reveal delay={0.1}>
-          <p className="mt-10 max-w-[62ch] text-2xs text-muted">
+          <p className="mt-10 max-w-[62ch] text-sm text-muted">
             Figures are cached and refreshed automatically every thirty
             minutes, so nothing here is fetched while you wait. Codeforces,
             LeetCode and Code360 are read from public APIs. CodeChef publishes

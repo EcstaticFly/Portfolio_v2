@@ -62,7 +62,7 @@ export function Figure({ value, label, note, suffix }: FigureProps) {
         ) : null}
       </p>
       <p className="mt-3 text-xs text-muted">{label}</p>
-      {note ? <p className="mt-1 text-2xs text-muted">{note}</p> : null}
+      {note ? <p className="mt-1 text-xs text-muted">{note}</p> : null}
     </div>
   );
 }

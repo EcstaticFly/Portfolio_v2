@@ -29,11 +29,9 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  themeColor: [
-    { media: "(prefers-color-scheme: light)", color: "#E4DED0" },
-    { media: "(prefers-color-scheme: dark)", color: "#1C1712" },
-  ],
-  colorScheme: "light dark",
+  // Dark is the site default, so it leads here regardless of the OS hint.
+  themeColor: "#1C1712",
+  colorScheme: "dark light",
 };
 
 export default function RootLayout({
@@ -42,6 +40,7 @@ export default function RootLayout({
   return (
     <html
       lang="en"
+      data-scroll-behavior="smooth"
       className={`${fraunces.variable} ${generalSans.variable}`}
       suppressHydrationWarning
     >

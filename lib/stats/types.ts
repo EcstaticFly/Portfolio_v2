@@ -15,6 +15,11 @@ export interface RatingPoint {
   rank?: number | null;
 }
 
+export interface TopicCount {
+  name: string;
+  solved: number;
+}
+
 export interface CodeforcesStats {
   handle: string;
   rating: number | null;
@@ -42,6 +47,8 @@ export interface LeetCodeStats {
   topPercentage: number | null;
   profileRanking: number | null;
   history: RatingPoint[];
+  /** Solved counts per algorithm tag, descending */
+  topics: TopicCount[];
 }
 
 export interface CodeChefStats {
