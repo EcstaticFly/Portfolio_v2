@@ -1,0 +1,241 @@
+@import "tailwindcss";
+
+/* ═══════════════════════════════════════════════════════════════
+   Theme tokens.
+
+   Both modes are the same warm neutral-brown family, inverted in
+   lightness, so switching feels like one brand rather than two sites.
+   Components never reference a hex — only these variables, surfaced to
+   Tailwind through the `@theme inline` block below.
+   ═══════════════════════════════════════════════════════════════ */
+
+:root {
+  /* Light — "Warm stone" */
+  --bg: #e4ded0;
+  --surface: #ede8dc;
+  --text: #221d16;
+  /* Spec value was #7C7364, which measures 3.49:1 on --bg and fails
+     WCAG AA for text below 24px. Darkened to the nearest tone in the
+     same family that passes: 4.76:1. */
+  --text-muted: #675e50;
+  --accent: #6b4a3a;
+  --border: #d3cbba;
+
+  /* Derived, so data visualisation has real values in both themes
+     rather than borrowing opacity. Mixed from the tokens above, never
+     hand-picked. */
+  --accent-soft: color-mix(in oklab, var(--accent) 26%, var(--bg));
+  --accent-mid: color-mix(in oklab, var(--accent) 60%, var(--bg));
+  --accent-wash: color-mix(in oklab, var(--accent) 12%, var(--bg));
+
+  --ease: cubic-bezier(0.22, 1, 0.36, 1);
+  --theme-ms: 180ms;
+
+  color-scheme: light;
+}
+
+[data-theme="dark"] {
+  /* Dark — "Espresso mono" */
+  --bg: #1c1712;
+  --surface: #241d16;
+  --text: #f2ece0;
+  --text-muted: #9c8f7c;
+  --accent: #c79b6e;
+  --border: #33291e;
+
+  --accent-soft: color-mix(in oklab, var(--accent) 30%, var(--bg));
+  --accent-mid: color-mix(in oklab, var(--accent) 62%, var(--bg));
+  --accent-wash: color-mix(in oklab, var(--accent) 16%, var(--bg));
+
+  color-scheme: dark;
+}
+
+@theme inline {
+  /* Utility names are readable aliases; the custom properties they point
+     at are the ones named in the spec. */
+  --color-canvas: var(--bg);
+  --color-surface: var(--surface);
+  --color-ink: var(--text);
+  --color-muted: var(--text-muted);
+  --color-accent: var(--accent);
+  --color-accent-soft: var(--accent-soft);
+  --color-accent-mid: var(--accent-mid);
+  --color-accent-wash: var(--accent-wash);
+  --color-line: var(--border);
+
+  --font-display: var(--font-display), Georgia, serif;
+  --font-body: var(--font-body), system-ui, sans-serif;
+
+  --text-2xs: 0.6875rem;
+  --text-2xs--line-height: 1.45;
+  --text-xs: 0.8125rem;
+  --text-xs--line-height: 1.5;
+  --text-sm: 0.9375rem;
+  --text-sm--line-height: 1.6;
+  --text-base: 1.0625rem;
+  --text-base--line-height: 1.65;
+  --text-lg: 1.25rem;
+  --text-lg--line-height: 1.5;
+  --text-xl: 1.625rem;
+  --text-xl--line-height: 1.35;
+  --text-xl--letter-spacing: -0.01em;
+  --text-2xl: 2.25rem;
+  --text-2xl--line-height: 1.2;
+  --text-2xl--letter-spacing: -0.018em;
+  --text-3xl: 3.25rem;
+  --text-3xl--line-height: 1.08;
+  --text-3xl--letter-spacing: -0.024em;
+  --text-4xl: 4.5rem;
+  --text-4xl--line-height: 1;
+  --text-4xl--letter-spacing: -0.03em;
+  --text-5xl: 6.5rem;
+  --text-5xl--line-height: 0.95;
+  --text-5xl--letter-spacing: -0.035em;
+
+  --spacing-rail: 11rem;
+  --spacing-gutter: 3rem;
+  --spacing-section: 8.5rem;
+}
+
+@layer base {
+  html {
+    scroll-behavior: smooth;
+    scroll-padding-top: 6rem;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  body {
+    background-color: var(--bg);
+    color: var(--text);
+    font-family: var(--font-body);
+    font-variant-numeric: tabular-nums;
+  }
+
+  .font-display {
+    font-family: var(--font-display);
+    font-variation-settings: "SOFT" 22, "WONK" 1;
+  }
+
+  ::selection {
+    background-color: var(--accent);
+    color: var(--bg);
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 3px;
+    border-radius: 2px;
+  }
+
+  ::-webkit-scrollbar {
+    width: 10px;
+  }
+  ::-webkit-scrollbar-track {
+    background: var(--bg);
+  }
+  ::-webkit-scrollbar-thumb {
+    background: var(--border);
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: var(--accent);
+  }
+}
+
+@layer components {
+  /* The one link treatment. The accent is intentionally muted, so
+     interactive elements are never marked by colour alone — the rule
+     underneath carries the affordance in both themes. */
+  .link-rule {
+    background-image: linear-gradient(
+      to right,
+      currentColor,
+      currentColor
+    );
+    background-repeat: no-repeat;
+    background-position: 0 100%;
+    background-size: 0% 1px;
+    transition: background-size 350ms var(--ease), color 250ms var(--ease);
+  }
+  .link-rule:hover,
+  .link-rule:focus-visible {
+    background-size: 100% 1px;
+    color: var(--accent);
+  }
+
+  /* Persistent underline for links inside running text, where a
+     hover-only affordance would not be discoverable. */
+  .link-inline {
+    color: var(--accent);
+    text-decoration: underline;
+    text-underline-offset: 3px;
+    text-decoration-thickness: 1px;
+    text-decoration-color: color-mix(in oklab, var(--accent) 45%, transparent);
+    transition: text-decoration-color 250ms var(--ease);
+  }
+  .link-inline:hover,
+  .link-inline:focus-visible {
+    text-decoration-color: var(--accent);
+  }
+}
+
+/* ── Theme switch ─────────────────────────────────────────────
+   Transitions are enabled only while the class is present, so the
+   first paint never animates and only the toggle does. */
+html.theme-transition,
+html.theme-transition *,
+html.theme-transition *::before,
+html.theme-transition *::after {
+  transition: background-color var(--theme-ms) ease,
+    border-color var(--theme-ms) ease, color var(--theme-ms) ease,
+    fill var(--theme-ms) ease, stroke var(--theme-ms) ease !important;
+}
+
+/* ── Entrance failsafe ─────────────────────────────────────────
+   Animated elements are server-rendered hidden, so a client bundle that
+   never executes would leave the page blank. A CSS animation is used
+   because animated values outrank inline styles in the cascade, which is
+   what it takes to override what Framer Motion wrote. It is disarmed the
+   moment React hydrates (components/hydration-flag.tsx). */
+@keyframes entrance-failsafe {
+  to {
+    opacity: 1;
+    transform: none;
+    filter: none;
+    stroke-dasharray: none;
+    stroke-dashoffset: 0;
+  }
+}
+
+[data-entrance] {
+  animation: entrance-failsafe 1ms linear 4s forwards;
+}
+
+html[data-hydrated] [data-entrance] {
+  animation: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+
+  /* Reduced motion is resolved in CSS, not JavaScript: the server
+     renders every animated element hidden because it cannot know the
+     visitor's preference, so a client-side check would run too late to
+     clear those inline styles. */
+  [data-entrance] {
+    opacity: 1 !important;
+    transform: none !important;
+    filter: none !important;
+    stroke-dasharray: none !important;
+    stroke-dashoffset: 0 !important;
+  }
+}
