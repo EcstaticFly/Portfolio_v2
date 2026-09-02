@@ -9,6 +9,8 @@ import { Platform, Readings, Unavailable } from "@/components/stats/platform";
 import { ContestRatings, type RatingCard } from "@/components/stats/contest-ratings";
 import { Awards, type Award } from "@/components/stats/awards";
 import { TopicChart } from "@/components/stats/topics";
+import { BadgeWall } from "@/components/stats/badge-wall";
+import { Heatmap } from "@/components/stats/heatmap";
 import { achievements } from "@/content/achievements";
 import {
   getStats,
@@ -17,7 +19,7 @@ import {
   type RatingSeries,
 } from "@/lib/stats";
 import { handles } from "@/content/site";
-import { formatNumber, formatTimestamp, round } from "@/lib/utils";
+import { formatNumber, formatTimestamp, listJoin, round } from "@/lib/utils";
 
 /**
  * Same clock as the homepage. The page is pre-rendered and served from
@@ -181,7 +183,7 @@ export default async function StatsPage() {
           <AnimatedText
             as="h1"
             text="Everything, counted"
-            className="font-display mt-5 max-w-[18ch] text-4xl leading-[1.02] font-light tracking-tight text-ink md:text-5xl"
+            className="font-display mt-5 max-w-[18ch] text-[2.4rem] leading-[1.02] font-light tracking-tight text-ink sm:text-4xl md:text-5xl"
             onMount
             delay={0.15}
             stagger={0.05}
@@ -246,12 +248,12 @@ export default async function StatsPage() {
             </StaggerItem>
           ) : null}
 
-          {stats.github ? (
+          {stats.activity ? (
             <StaggerItem>
               <Figure
-                value={stats.github.activeDays}
-                label="Active days on GitHub"
-                note="In the trailing twelve months"
+                value={stats.activity.totalActiveDays}
+                label="Active days"
+                note={`All time, across ${listJoin(stats.activity.sources)}`}
               />
             </StaggerItem>
           ) : null}
@@ -309,6 +311,63 @@ export default async function StatsPage() {
           </Reveal>
         </div>
       </Section>
+
+      {stats.activity ? (
+        <Section
+          id="activity"
+          label="Activity"
+          meta={`${formatNumber(stats.activity.totalSubmissions)} submissions counted`}
+        >
+          <Lead>Every day something was submitted, on any judge.</Lead>
+
+          <Stagger className="mt-10 flex flex-wrap gap-x-12 gap-y-6" stagger={0.08}>
+            {[
+              { label: "Active days", value: stats.activity.totalActiveDays },
+              { label: "Current streak", value: stats.activity.currentStreak },
+              { label: "Longest streak", value: stats.activity.longestStreak },
+            ].map((r) => (
+              <StaggerItem key={r.label}>
+                <div className="flex flex-col-reverse">
+                  <dt className="mt-2 text-xs text-muted">{r.label}</dt>
+                  <dd className="font-display text-3xl leading-none font-light text-ink">
+                    {formatNumber(r.value)}
+                  </dd>
+                </div>
+              </StaggerItem>
+            ))}
+          </Stagger>
+
+          <Reveal delay={0.08} className="mt-10 w-full min-w-0">
+            <Heatmap
+              days={stats.activity.days}
+              months={12}
+              today={stats.activity.today}
+            />
+          </Reveal>
+
+          <Reveal delay={0.1}>
+            <p className="mt-8 max-w-[62ch] text-sm text-muted">
+              Days are unioned rather than summed, so working on two judges
+              on the same date counts once. Only{" "}
+              {listJoin(stats.activity.sources)} publish per-day activity;
+              the other platforms are not represented here.
+            </p>
+          </Reveal>
+        </Section>
+      ) : null}
+
+      {stats.badges.length > 0 ? (
+        <Section
+          id="badges"
+          label="Badges"
+          meta={`${stats.badges.length} earned`}
+        >
+          <Lead>Badges the judges handed out along the way.</Lead>
+          <Reveal delay={0.06} className="mt-10">
+            <BadgeWall badges={stats.badges} />
+          </Reveal>
+        </Section>
+      ) : null}
 
       {stats.leetcode && stats.leetcode.topics.length > 0 ? (
         <Section

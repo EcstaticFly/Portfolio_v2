@@ -34,11 +34,6 @@ export const socials: SocialLink[] = [
     href: "https://www.linkedin.com/in/suyash607/",
     display: "linkedin.com/in/suyash607",
   },
-  {
-    label: "Codolio",
-    href: "https://codolio.com/profile/suyash607",
-    display: "codolio.com/profile/suyash607",
-  },
 ];
 
 /**

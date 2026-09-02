@@ -15,6 +15,40 @@ export interface RatingPoint {
   rank?: number | null;
 }
 
+/** A badge earned on one of the judges. */
+export interface Badge {
+  name: string;
+  platform: string;
+  /** ISO date if the platform reports one */
+  date: string | null;
+  /** The platform's own word for the level: Achiever, Silver, and so on */
+  tier: string | null;
+}
+
+/** One day of the activity heatmap. */
+export interface ActivityDay {
+  /** YYYY-MM-DD, UTC */
+  date: string;
+  count: number;
+}
+
+/**
+ * Activity merged across every platform that exposes per-day data.
+ * Days are unioned, not summed, so a day worked on two judges counts
+ * once — which is what "active days" means.
+ */
+export interface ActivitySummary {
+  totalActiveDays: number;
+  currentStreak: number;
+  longestStreak: number;
+  totalSubmissions: number;
+  days: ActivityDay[];
+  /** Which platforms actually contributed, for honest labelling */
+  sources: string[];
+  /** Today in the reporting timezone, so the heatmap ends where streaks do */
+  today: string;
+}
+
 export interface TopicCount {
   name: string;
   solved: number;
@@ -29,6 +63,8 @@ export interface CodeforcesStats {
   contests: number;
   solved: number;
   history: RatingPoint[];
+  /** Distinct UTC dates with at least one submission */
+  activity: ActivityDay[];
 }
 
 export interface LeetCodeStats {
@@ -49,6 +85,9 @@ export interface LeetCodeStats {
   history: RatingPoint[];
   /** Solved counts per algorithm tag, descending */
   topics: TopicCount[];
+  badges: Badge[];
+  /** Per-day submission counts across every active year */
+  activity: ActivityDay[];
 }
 
 export interface CodeChefStats {
@@ -61,6 +100,9 @@ export interface CodeChefStats {
   countryRank: number | null;
   contests: number;
   history: RatingPoint[];
+  badges: Badge[];
+  /** Per-day submission counts, from the profile page's heatmap data */
+  activity: ActivityDay[];
 }
 
 export interface Code360Stats {
@@ -72,6 +114,9 @@ export interface Code360Stats {
   ninja: number;
   level: string | null;
   experience: number | null;
+  badges: Badge[];
+  /** Per-day contributions, from the public contributions endpoint */
+  activity: ActivityDay[];
 }
 
 export interface GitHubStats {
@@ -91,6 +136,10 @@ export interface StatsBundle {
   codechef: CodeChefStats | null;
   code360: Code360Stats | null;
   github: GitHubStats | null;
+  /** Merged across platforms; null if no platform reported day data */
+  activity: ActivitySummary | null;
+  /** Every badge from every platform, newest-looking first */
+  badges: Badge[];
   /** When this render happened — shown as the "last updated" line */
   fetchedAt: string;
 }

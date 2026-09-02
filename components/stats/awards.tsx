@@ -8,10 +8,9 @@ const EASE = [0.22, 1, 0.36, 1] as const;
 /**
  * Achievements rendered as a measured set rather than a bullet list.
  *
- * Codolio shows awards as a row of medals, which works there because the
- * count is the point. Here the interesting part is *how far* each result
- * went, so each award carries a meter: how deep into the field it
- * placed. `weight` is a deliberate editorial judgement, not a computed
+ * A row of medals would make the count the point. Here the interesting
+ * part is *how far* each result went, so each award carries a meter: how
+ * deep into the field it placed. `weight` is a deliberate editorial judgement, not a computed
  * statistic, so the bar is labelled with the real figure beside it and
  * never presented as a percentage of anything.
  */

@@ -34,7 +34,7 @@ export function Hero({ live }: { live: HeroLiveStat[] }) {
       <Shell className="relative z-10">
         <div className="grid items-center gap-12 lg:grid-cols-[1.15fr_auto] lg:gap-16">
           <div className="order-2 lg:order-1">
-            <h1 className="font-display text-4xl leading-[0.95] font-light tracking-tight text-ink sm:text-5xl">
+            <h1 className="font-display text-[2.4rem] leading-[0.95] font-light tracking-tight text-ink sm:text-4xl md:text-5xl">
               <AnimatedText
                 as="span"
                 text="Suyash"
@@ -68,7 +68,7 @@ export function Hero({ live }: { live: HeroLiveStat[] }) {
             <AnimatedText
               as="p"
               text="I build backends that hold up once the traffic actually arrives."
-              className="font-display mt-8 max-w-[24ch] text-2xl leading-[1.18] font-light text-ink md:text-3xl"
+              className="font-display mt-8 max-w-[24ch] text-xl leading-[1.18] font-light text-ink sm:text-2xl md:text-3xl"
               onMount
               delay={0.9}
               stagger={0.014}
@@ -127,41 +127,78 @@ export function Hero({ live }: { live: HeroLiveStat[] }) {
             </Stagger>
           </div>
 
-          {/* Portrait. Circular by design, with a hairline ring and a soft
-              halo picked from the accent so it sits inside the backdrop
-              rather than on top of it. */}
+          {/* Portrait. Circular, and built into the backdrop rather than
+              dropped on top of it: a slowly rotating dashed ring and a
+              travelling marker orbit the frame, an inner hairline sits
+              just inside the edge, and the image itself lifts from
+              slightly desaturated to full colour on hover. Aligned to
+              the top of the column so it reads with the name rather than
+              sinking below it. */}
           <motion.div
             data-entrance=""
-            className="order-1 flex justify-center lg:order-2 lg:justify-end"
+            className="order-1 flex justify-center lg:order-2 lg:justify-end lg:self-start lg:pt-4"
             initial={reduced ? false : { opacity: 0, scale: 0.94, y: 14 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             transition={
               reduced ? { duration: 0 } : { duration: 1, ease: EASE, delay: 0.5 }
             }
           >
-            <div className="relative">
+            <div className="group relative">
               <div
                 aria-hidden="true"
-                className="absolute -inset-8 rounded-full opacity-70 blur-2xl"
+                className="absolute -inset-10 rounded-full opacity-80 blur-2xl"
                 style={{
                   background:
                     "radial-gradient(circle, var(--accent-wash) 0%, transparent 70%)",
                 }}
               />
-              <div className="relative h-40 w-40 overflow-hidden rounded-full border border-line sm:h-52 sm:w-52 lg:h-[19rem] lg:w-[19rem]">
+
+              {/* orbiting dashed ring */}
+              <motion.svg
+                aria-hidden="true"
+                viewBox="0 0 100 100"
+                className="absolute -inset-5 h-[calc(100%+2.5rem)] w-[calc(100%+2.5rem)]"
+                animate={reduced ? undefined : { rotate: 360 }}
+                transition={
+                  reduced
+                    ? { duration: 0 }
+                    : { duration: 90, ease: "linear", repeat: Infinity }
+                }
+              >
+                <circle
+                  cx="50"
+                  cy="50"
+                  r="48"
+                  fill="none"
+                  stroke="var(--accent)"
+                  strokeWidth="0.4"
+                  strokeDasharray="1.5 4"
+                  opacity="0.55"
+                />
+                <circle cx="50" cy="2" r="1.6" fill="var(--accent)" />
+              </motion.svg>
+
+              <div className="relative h-44 w-44 overflow-hidden rounded-full border border-line sm:h-56 sm:w-56 lg:h-[20rem] lg:w-[20rem]">
                 <Image
                   src="/profile_pic.jpeg"
                   alt={`${site.name}, portrait`}
                   fill
-                  sizes="(min-width: 1024px) 19rem, (min-width: 640px) 13rem, 10rem"
-                  className="object-cover"
+                  sizes="(min-width: 1024px) 20rem, (min-width: 640px) 14rem, 11rem"
+                  className="scale-105 object-cover saturate-[0.82] transition-all duration-700 ease-out group-hover:scale-100 group-hover:saturate-100"
                   priority
                 />
+                {/* a whisper of the page colour over the image, so it sits
+                    in the palette instead of on top of it */}
+                <div
+                  aria-hidden="true"
+                  className="pointer-events-none absolute inset-0 opacity-40 mix-blend-soft-light transition-opacity duration-700 group-hover:opacity-0"
+                  style={{ backgroundColor: "var(--accent)" }}
+                />
+                <div
+                  aria-hidden="true"
+                  className="pointer-events-none absolute inset-0 rounded-full border border-canvas/25"
+                />
               </div>
-              <div
-                aria-hidden="true"
-                className="pointer-events-none absolute -inset-3 rounded-full border border-line opacity-60 sm:-inset-4"
-              />
             </div>
           </motion.div>
         </div>

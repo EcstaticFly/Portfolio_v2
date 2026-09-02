@@ -115,10 +115,10 @@ export function SiteHeader() {
       )}
     >
       <Shell>
-        <div className="flex h-16 items-center justify-between gap-6 md:h-20">
+        <div className="flex h-16 items-center justify-between gap-3 md:h-20 md:gap-6">
           <Link
             href="/"
-            className="font-display text-lg font-normal tracking-tight text-ink transition-colors duration-300 hover:text-accent"
+            className="font-display min-w-0 truncate text-base font-normal tracking-tight text-ink transition-colors duration-300 hover:text-accent sm:text-lg"
           >
             {site.shortName}
           </Link>
@@ -150,14 +150,14 @@ export function SiteHeader() {
             <ThemeToggle />
           </nav>
 
-          <div className="flex items-center gap-3 md:hidden">
+          <div className="flex shrink-0 items-center gap-2 md:hidden">
             <ThemeToggle />
             <button
               type="button"
               onClick={() => setOpen((v) => !v)}
               aria-expanded={open}
               aria-controls="mobile-nav"
-              className="flex h-8 items-center rounded-full border border-line bg-surface px-3.5 text-xs text-ink transition-colors duration-300 hover:border-accent"
+              className="flex h-8 shrink-0 items-center rounded-full border border-line bg-surface px-3 text-xs text-ink transition-colors duration-300 hover:border-accent sm:px-3.5"
             >
               {open ? "Close" : "Menu"}
             </button>

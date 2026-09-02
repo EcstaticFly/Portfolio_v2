@@ -1,6 +1,8 @@
 import * as cheerio from "cheerio";
 import {
   STATS_REVALIDATE,
+  type ActivityDay,
+  type Badge,
   type CodeChefStats,
   type RatingPoint,
 } from "./types";
@@ -62,6 +64,29 @@ export async function getCodeChef(
       }
     }
 
+    // The profile page feeds its heatmap from an inline array. Dates
+    // arrive unpadded ("2024-9-13"), so they are normalised to ISO
+    // before anything downstream tries to compare them.
+    let activity: ActivityDay[] = [];
+    const heat = /userDailySubmissionsStats\s*=\s*(\[[\s\S]*?\]);/.exec(html);
+    if (heat) {
+      try {
+        const rows = JSON.parse(heat[1]) as { date: string; value: number }[];
+        activity = rows
+          .map((r) => {
+            const [y, m, d] = r.date.split("-").map(Number);
+            if (!y || !m || !d) return null;
+            const iso = `${y}-${String(m).padStart(2, "0")}-${String(d).padStart(2, "0")}`;
+            return { date: iso, count: Number(r.value) || 0 };
+          })
+          .filter((r): r is ActivityDay => r !== null && r.count > 0);
+      } catch {
+        // A malformed array costs the heatmap contribution, not the
+        // whole platform.
+        activity = [];
+      }
+    }
+
     const int = (raw: string | undefined): number | null => {
       if (!raw) return null;
       const digits = raw.replace(/[^\d]/g, "");
@@ -85,6 +110,22 @@ export async function getCodeChef(
       /Total Problems Solved:\s*([\d]+)/.exec($.root().text())?.[1]
     );
 
+    // Badges live in a widget of their own, each a title plus the
+    // threshold that earned it.
+    const badges: Badge[] = [];
+    $(".widget.badges .badge__title, .badge__title").each((_, el) => {
+      const name = $(el).text().trim();
+      if (name) {
+        const tier = /(Gold|Silver|Bronze|Platinum|Diamond)/i.exec(name)?.[1];
+        badges.push({
+          name: name.replace(/\s*-\s*(Gold|Silver|Bronze|Platinum|Diamond)?\s*Badge$/i, "").trim(),
+          platform: "CodeChef",
+          date: null,
+          tier: tier ? tier.charAt(0).toUpperCase() + tier.slice(1).toLowerCase() : null,
+        });
+      }
+    });
+
     const rankText = $(".rating-ranks").first().find("a strong");
     const globalRank = int(rankText.eq(0).text());
     const countryRank = int(rankText.eq(1).text());
@@ -105,6 +146,8 @@ export async function getCodeChef(
       countryRank,
       contests: history.length,
       history,
+      badges,
+      activity,
     };
   } catch {
     return null;

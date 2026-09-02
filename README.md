@@ -52,9 +52,35 @@ and donuts get real values in both themes instead of borrowing opacity.
 - Default is the OS preference; the toggle overrides it and persists to
   `localStorage`; with no stored choice the page keeps following the OS
   live.
-- Colour transitions are opt-in per switch: the toggle adds a
-  `theme-transition` class for 240ms, so first paint never animates.
-  Skipped entirely under `prefers-reduced-motion`.
+- **The switch is instant. Do not animate it.** Three approaches were
+  built and measured on /stats at 4x CPU throttle, using
+  `PerformanceObserver({entryTypes:['longtask']})` — not rAF gaps, which
+  are meaningless while a view transition composites:
+
+  | Approach | Longest blocking task |
+  | --- | ---: |
+  | Colour transition on every element | 13,552ms |
+  | View Transitions circular wipe | ~350–425ms |
+  | **Instant attribute flip (current)** | **82ms** |
+
+  The wipe looked good, but the API has to capture two full-viewport
+  snapshots and run a style recalc *before* its first frame, so on a long
+  page there is a stall on click — the exact lag it was supposed to
+  remove.
+
+- **The real cost was never the toggle.** It was the hero backdrop, and
+  fixing that mattered far more than any switching strategy:
+  `blur-[120px]` filters stacked on radial gradients that were already
+  soft (a 736px element blurred by 120px is an enormous convolution), and
+  a cursor light that animated its `background` gradient *string*,
+  repainting a viewport-sized element on every pointer move. Both are now
+  transform-only. Homepage toggle went 806ms -> 145ms, /stats 213ms ->
+  82ms, and the run-to-run spread collapsed.
+
+- `content-visibility: auto` on off-screen sections was tried and
+  **reverted**: it breaks anchor navigation, because the browser scrolls
+  using `contain-intrinsic-size` estimates before real heights resolve.
+  A jump to `#platforms` landed 1,271px off.
 - The accent is intentionally muted, so **no interactive element is
   marked by colour alone** — `.link-rule` draws an underline on hover and
   focus, `.link-inline` keeps a permanent one inside running text.
@@ -118,6 +144,34 @@ Rating history comes from three of them, which is what feeds the
 switchable trend chart: Codeforces `user.rating`, LeetCode
 `userContestRankingHistory`, and CodeChef's `all_rating` array embedded
 in its profile page.
+
+**Badges** come from all three judges that publish them: LeetCode
+`matchedUser.badges`, Code360's `badges_hash`, and the badge widget on
+CodeChef's profile page.
+
+**Activity and the heatmap** merge per-day data from all four judges:
+
+| Platform | Where the per-day data comes from |
+| --- | --- |
+| LeetCode | `userCalendar`, queried once per active year |
+| Codeforces | `user.status` timestamps |
+| CodeChef | the `userDailySubmissionsStats` array its profile page feeds its own heatmap from |
+| Code360 | `public_section/profile/contributions?uuid=&start_date=&end_date=` — undocumented but public; it returns "Date is required" unless given an explicit range, which is what makes it look broken |
+
+Days are *unioned, not summed* — working on two judges on one date is a
+single active day — and `lib/stats/activity.ts` recomputes both streaks
+from the merged set rather than trusting any one platform's figure.
+
+**Day boundaries are IST, not UTC** (`TZ_OFFSET_MINUTES` in
+`activity.ts`). "Active day" means a day *he* worked, so it follows his
+calendar; under UTC anything submitted before 05:30 IST lands on the
+previous day. This only affects sources handing over raw timestamps,
+which is Codeforces alone — the other three arrive pre-bucketed.
+
+The heatmap's last day is passed in from the server (`fetchedAt`) rather
+than read from the clock during render: reading it client-side would be
+impure and would let server and client disagree about "today", which is
+a hydration mismatch.
 
 `GITHUB_TOKEN` is honoured if set but is **not** required; it only raises
 the REST rate limit. Contribution totals come from the public calendar
@@ -249,6 +303,32 @@ brand colours: thirty saturated logos would fight the palette and each
 other, and one ink means they invert with the theme for free. An entry
 with `icon: null` has no brand mark (SQL, AWS, a concept) and falls back
 to a typographic monogram rather than a borrowed glyph.
+
+## Responsive rules worth keeping
+
+Horizontal overflow on a page like this comes from a small number of
+repeat offenders, all of which bit at least once here:
+
+1. **Never use `100vw` for full-bleed.** It ignores the scrollbar. The
+   skills marquee spans its section instead, through the `bleed` slot on
+   `<Section>`.
+2. **`overflow-x` containment belongs on `html`, not `body`** — it does
+   not reliably propagate from body, and pairing `clip` with a `visible`
+   cross-axis makes that axis compute to `auto`. Use `clip`, never
+   `hidden`, or the sticky section rails stop working.
+3. **Long unbreakable strings set at display size** will widen the whole
+   layout viewport: an email address in the contact section and a single
+   long word in an animated heading both did. `AnimatedText` word
+   wrappers carry `max-w-full` so a word can wrap between its own
+   glyphs.
+4. **A fixed header must fit the narrowest target.** It cannot shrink to
+   the page, so if its contents overflow, the viewport widens instead.
+5. **Multi-column grids need to account for the section rail.** At `md`
+   the rail already takes 176px, so a four-column figure grid inside it
+   gets ~52px per column — the platform ledger waits for `lg`.
+
+Check with `document.documentElement.scrollWidth` against
+`clientWidth` at 320, 375, 414, 640, 768, 1024 and 1280.
 
 ## Performance notes
 

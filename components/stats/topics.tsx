@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { motion, useReducedMotion } from "framer-motion";
 import type { TopicCount } from "@/lib/stats";
 import { formatNumber } from "@/lib/utils";
@@ -25,13 +26,18 @@ export function TopicChart({
   limit?: number;
 }) {
   const reduced = useReducedMotion();
-  const rows = topics.slice(0, limit);
-  if (rows.length === 0) return null;
+  const [expanded, setExpanded] = useState(false);
+  if (topics.length === 0) return null;
 
-  const max = rows[0].solved || 1;
+  const rows = expanded ? topics : topics.slice(0, limit);
+  // Scale against the overall leader, not the visible leader, so bars do
+  // not rescale when the list expands.
+  const max = topics[0].solved || 1;
+  const hidden = topics.length - limit;
 
   return (
-    <ul className="flex flex-col gap-3.5">
+    <div>
+      <ul className="flex flex-col gap-3.5">
       {rows.map((topic, i) => {
         const ratio = topic.solved / max;
         // Strongest topics carry the full accent; the tail steps back
@@ -41,8 +47,10 @@ export function TopicChart({
         // The soft step is too close to the page to carry canvas-coloured
         // text, so the label flips to ink once the bar gets that pale.
         const labelClass = i < 5 ? "text-canvas" : "text-ink";
-        const pct = Math.max(ratio * 100, 4);
-        const inside = ratio > 0.2;
+        // Every bar is wide enough to hold its own number, so the
+        // labels sit in one consistent place down the column instead of
+        // some inside and some floating past the end.
+        const pct = Math.max(ratio * 100, 14);
 
         return (
           <li
@@ -68,17 +76,8 @@ export function TopicChart({
                     : { duration: 0.85, ease: EASE, delay: i * 0.06 }
                 }
               />
-              {/* The number sits inside the bar when there is room, and
-                  just past its end when there is not. Both cases are
-                  positioned off the same percentage as the bar, so they
-                  cannot drift apart. */}
               <span
-                className={`absolute z-10 text-sm ${inside ? labelClass : "text-ink"}`}
-                style={
-                  inside
-                    ? { left: "0.75rem" }
-                    : { left: `calc(${pct}% + 0.6rem)` }
-                }
+                className={`absolute left-3 z-10 text-sm ${labelClass}`}
               >
                 {formatNumber(topic.solved)}
               </span>
@@ -86,6 +85,28 @@ export function TopicChart({
           </li>
         );
       })}
-    </ul>
+      </ul>
+
+      {hidden > 0 ? (
+        <button
+          type="button"
+          onClick={() => setExpanded((v) => !v)}
+          aria-expanded={expanded}
+          className="mt-7 inline-flex items-center gap-2 rounded-full border border-line bg-surface px-5 py-2.5 text-sm text-ink transition-colors duration-300 hover:border-accent hover:text-accent"
+        >
+          {expanded ? "Show top 10" : `Show all ${topics.length} topics`}
+          <motion.span
+            aria-hidden="true"
+            animate={{ rotate: expanded ? 180 : 0 }}
+            transition={reduced ? { duration: 0 } : { duration: 0.35, ease: EASE }}
+            className="text-muted"
+          >
+            <svg viewBox="0 0 24 24" className="h-3.5 w-3.5" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+              <path d="m6 9 6 6 6-6" />
+            </svg>
+          </motion.span>
+        </button>
+      ) : null}
+    </div>
   );
 }

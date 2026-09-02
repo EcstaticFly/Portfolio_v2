@@ -1,5 +1,5 @@
 import * as simpleIcons from "simple-icons";
-import { Section, Lead } from "@/components/section";
+import { Section, Lead, Shell } from "@/components/section";
 import { Reveal } from "@/components/motion";
 import { skills, type Skill } from "@/content/skills";
 
@@ -115,24 +115,29 @@ export function Skills() {
   const rowB = all.filter((_, i) => i % 2 === 1);
 
   return (
-    <Section id="skills" label="Skills" meta={`${all.length} tools and topics`}>
+    <Section
+      id="skills"
+      label="Skills"
+      meta={`${all.length} tools and topics`}
+      bleed={
+        <Reveal delay={0.05}>
+          {/* Edge to edge without `100vw`: the section already spans the
+              page, so the rows simply fill it. Using viewport units here
+              is what previously let a scrollbar's width leak out as
+              horizontal overflow on narrow screens. */}
+          <div className="mt-12 flex flex-col gap-3">
+            <MarqueeRow entries={rowA} direction="left" seconds={64} />
+            <MarqueeRow entries={rowB} direction="right" seconds={78} />
+          </div>
+          <Shell>
+            <p className="mt-6 text-xs text-muted">
+              Hover to slow the rows down.
+            </p>
+          </Shell>
+        </Reveal>
+      }
+    >
       <Lead>What I reach for, roughly in the order I reach for it.</Lead>
-
-      <Reveal delay={0.05}>
-        {/* Full-bleed. The rows escape the section's content column and
-            run the whole viewport width, which is what makes the drift
-            read as continuous rather than as a widget in a box. Paired
-            with `overflow-x: clip` on the body so 100vw never introduces
-            a horizontal scrollbar. */}
-        <div className="relative left-1/2 mt-12 flex w-screen -translate-x-1/2 flex-col gap-3">
-          <MarqueeRow entries={rowA} direction="left" seconds={64} />
-          <MarqueeRow entries={rowB} direction="right" seconds={78} />
-        </div>
-      </Reveal>
-
-      <p className="mt-6 text-xs text-muted">
-        Hover to slow the rows down.
-      </p>
     </Section>
   );
 }

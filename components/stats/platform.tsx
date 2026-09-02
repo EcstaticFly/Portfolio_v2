@@ -35,7 +35,7 @@ export function Platform({
   const mark = lookup(icon);
 
   return (
-    <div className="grid gap-x-gutter gap-y-6 border-t border-line py-9 md:grid-cols-[13rem_1fr]">
+    <div className="grid gap-x-gutter gap-y-6 border-t border-line py-9 lg:grid-cols-[13rem_1fr]">
       <div className="flex items-start gap-3">
         <span className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-md border border-line bg-surface text-muted">
           {mark ? (
@@ -77,7 +77,7 @@ export function Readings({
   items: { label: string; value: string }[];
 }) {
   return (
-    <dl className="grid grid-cols-2 gap-x-8 gap-y-6 sm:grid-cols-4">
+    <dl className="grid grid-cols-2 gap-x-8 gap-y-6 lg:grid-cols-4">
       {items.map((item) => (
         <div key={item.label} className="flex flex-col-reverse">
           <dt className="mt-2 text-xs text-muted">{item.label}</dt>

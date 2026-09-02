@@ -12,49 +12,56 @@ import {
 /**
  * Atmosphere for the hero.
  *
- * Depth comes from parallax rather than from perspective tricks: four
- * layers move at different fractions of the pointer, so the near ones
- * outrun the far ones and the eye reads separation. A soft light tracks
- * the cursor on top of that, which is the part that makes it feel
- * responsive rather than merely decorative.
+ * Depth comes from parallax: layers translate at different fractions of
+ * the pointer, so near ones outrun far ones and the eye reads
+ * separation. A soft light follows the cursor on a faster spring.
  *
- * Everything is a blurred radial gradient tinted from the theme tokens,
- * so it re-themes with the page and never introduces a colour of its
- * own. Only `transform` animates — no filter animation, no repaint — so
- * the whole thing rides the compositor.
+ * Two things here were rewritten for cost, and both are worth keeping
+ * in mind before editing:
+ *
+ *   1. **No blur filters.** The glows were previously radial gradients
+ *      with `blur-[120px]` on top. A radial gradient is already soft —
+ *      the filter added nothing visually and a 736px element blurred by
+ *      120px is an enormous convolution to rasterise every time the
+ *      element repaints, which includes every theme change.
+ *   2. **The cursor light moves by transform, not by repainting.** It
+ *      used to animate the `background` gradient *string*, which
+ *      repainted a viewport-sized element on every pointer move. It is
+ *      now a fixed element with a static gradient, translated on the
+ *      compositor.
+ *
+ * Everything animated here is `transform` only, and every colour is
+ * mixed from the theme tokens so it re-themes for free.
  */
 export function HeroBackdrop() {
   const reduced = useReducedMotion();
 
-  // Normalised pointer position, -0.5..0.5 on each axis.
+  // Normalised pointer, -0.5..0.5 per axis, for the parallax layers.
   const mx = useMotionValue(0);
   const my = useMotionValue(0);
   const sx = useSpring(mx, { stiffness: 38, damping: 20, mass: 1 });
   const sy = useSpring(my, { stiffness: 38, damping: 20, mass: 1 });
 
-  // Raw pointer for the cursor light, which should feel attached to the
-  // cursor rather than trailing it as much as the depth layers do.
-  const lx = useSpring(mx, { stiffness: 120, damping: 24, mass: 0.6 });
-  const ly = useSpring(my, { stiffness: 120, damping: 24, mass: 0.6 });
+  // Raw pixel pointer for the light, which should feel attached rather
+  // than trailing as far as the depth layers do.
+  const lightX = useSpring(useMotionValue(-4000), {
+    stiffness: 140,
+    damping: 26,
+    mass: 0.5,
+  });
+  const lightY = useSpring(useMotionValue(-4000), {
+    stiffness: 140,
+    damping: 26,
+    mass: 0.5,
+  });
 
-  /* Each layer's travel, in px. Larger = nearer the viewer. */
+  /* Layer travel in px. Larger = nearer the viewer. */
   const farX = useTransform(sx, (v) => v * 14);
   const farY = useTransform(sy, (v) => v * 10);
   const midX = useTransform(sx, (v) => v * 38);
   const midY = useTransform(sy, (v) => v * 26);
   const nearX = useTransform(sx, (v) => v * 72);
   const nearY = useTransform(sy, (v) => v * 48);
-
-  const lightX = useTransform(lx, (v) => `${50 + v * 60}%`);
-  const lightY = useTransform(ly, (v) => `${50 + v * 60}%`);
-
-  // Composed here rather than inline in JSX: a hook may not sit behind a
-  // conditional render.
-  const cursorLight = useTransform(
-    [lightX, lightY],
-    ([x, y]) =>
-      `radial-gradient(38rem circle at ${x} ${y}, var(--accent-wash) 0%, transparent 60%)`
-  );
 
   useEffect(() => {
     if (reduced) return;
@@ -63,53 +70,49 @@ export function HeroBackdrop() {
     const onMove = (e: PointerEvent) => {
       mx.set(e.clientX / window.innerWidth - 0.5);
       my.set(e.clientY / window.innerHeight - 0.5);
+      lightX.set(e.clientX);
+      lightY.set(e.clientY);
     };
     window.addEventListener("pointermove", onMove, { passive: true });
     return () => window.removeEventListener("pointermove", onMove);
-  }, [mx, my, reduced]);
+  }, [mx, my, lightX, lightY, reduced]);
 
   return (
     <div
       aria-hidden="true"
       className="pointer-events-none absolute inset-0 overflow-hidden"
     >
-      {/* far: one broad wash that anchors the whole field */}
-      <motion.div
-        style={{ x: farX, y: farY }}
-        className="absolute -inset-[15%]"
-      >
+      {/* far: one broad wash anchoring the field */}
+      <motion.div style={{ x: farX, y: farY }} className="absolute -inset-[15%]">
         <div
-          className="absolute top-[18%] left-[52%] h-[46rem] w-[46rem] rounded-full opacity-80 blur-[120px]"
+          className="absolute top-[18%] left-[52%] h-[46rem] w-[46rem] rounded-full opacity-90"
           style={{
             background:
-              "radial-gradient(circle, var(--accent-wash) 0%, transparent 68%)",
+              "radial-gradient(circle, var(--accent-wash) 0%, transparent 62%)",
           }}
         />
       </motion.div>
 
-      {/* mid: two smaller blooms, offset so the field is not symmetrical */}
-      <motion.div
-        style={{ x: midX, y: midY }}
-        className="absolute -inset-[15%]"
-      >
+      {/* mid: two smaller glows, offset so the field is not symmetrical */}
+      <motion.div style={{ x: midX, y: midY }} className="absolute -inset-[15%]">
         <div
-          className="absolute top-[8%] left-[62%] h-[26rem] w-[26rem] rounded-full opacity-[0.55] blur-[90px]"
+          className="absolute top-[8%] left-[62%] h-[30rem] w-[30rem] rounded-full opacity-40"
           style={{
             background:
-              "radial-gradient(circle, var(--accent-soft) 0%, transparent 70%)",
+              "radial-gradient(circle, var(--accent-soft) 0%, transparent 64%)",
           }}
         />
         <div
-          className="absolute top-[58%] left-[38%] h-[22rem] w-[22rem] rounded-full opacity-40 blur-[100px]"
+          className="absolute top-[58%] left-[38%] h-[26rem] w-[26rem] rounded-full opacity-30"
           style={{
             background:
-              "radial-gradient(circle, var(--accent-mid) 0%, transparent 72%)",
+              "radial-gradient(circle, var(--accent-mid) 0%, transparent 66%)",
           }}
         />
       </motion.div>
 
-      {/* near: two thin rings, the only hard edges in the composition —
-          they give the parallax something crisp to read against */}
+      {/* near: thin rings, the only hard edges — they give the parallax
+          something crisp to read against */}
       <motion.div
         style={{ x: nearX, y: nearY }}
         className="absolute -inset-[15%]"
@@ -118,18 +121,27 @@ export function HeroBackdrop() {
         <div className="absolute top-[30%] left-[68%] h-[16rem] w-[16rem] rounded-full border border-line opacity-40" />
       </motion.div>
 
-      {/* the interactive part: a soft light that follows the cursor */}
+      {/* the interactive part: painted once, then only translated */}
       {!reduced ? (
         <motion.div
-          className="absolute inset-0 opacity-[0.55]"
-          style={{ background: cursorLight }}
+          className="absolute top-0 left-0 h-[52rem] w-[52rem] rounded-full opacity-70"
+          style={{
+            x: lightX,
+            y: lightY,
+            marginLeft: "-26rem",
+            marginTop: "-26rem",
+            background:
+              "radial-gradient(circle, var(--accent-wash) 0%, transparent 60%)",
+          }}
         />
       ) : null}
 
       {/* fine grain, which is what stops the gradients reading as flat
-          CSS blobs. Inlined so it costs no request. */}
+          CSS blobs. Inlined so it costs no request, and composited
+          plainly — `mix-blend-mode` here forced a full-viewport blend
+          layer for a texture that reads the same without it. */}
       <div
-        className="absolute inset-0 opacity-[0.055] mix-blend-overlay"
+        className="absolute inset-0 opacity-[0.05]"
         style={{
           backgroundImage:
             "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3'/%3E%3C/filter%3E%3Crect width='140' height='140' filter='url(%23n)'/%3E%3C/svg%3E\")",

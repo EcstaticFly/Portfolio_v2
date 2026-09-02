@@ -10,6 +10,13 @@ interface SectionProps {
   meta?: string;
   children: ReactNode;
   className?: string;
+  /**
+   * Rendered after the grid at the section's own full width, outside the
+   * page gutters. Used for edge-to-edge content like the skills
+   * marquee, which would otherwise need `100vw` — and `100vw` ignores
+   * the scrollbar, which is how horizontal overflow gets in.
+   */
+  bleed?: ReactNode;
 }
 
 /**
@@ -26,6 +33,7 @@ export function Section({
   meta,
   children,
   className,
+  bleed,
 }: SectionProps) {
   return (
     <section
@@ -33,7 +41,12 @@ export function Section({
       className={cn("scroll-mt-24 border-t border-line", className)}
     >
       <Shell>
-        <div className="grid gap-y-10 py-20 md:grid-cols-[var(--spacing-rail)_1fr] md:gap-x-gutter md:py-section">
+        <div
+          className={cn(
+            "grid gap-y-10 pt-20 md:grid-cols-[var(--spacing-rail)_1fr] md:gap-x-gutter md:pt-section",
+            bleed ? "pb-0" : "pb-20 md:pb-section"
+          )}
+        >
           <Reveal className="md:sticky md:top-28 md:self-start">
             <h2 className="text-sm text-muted">{label}</h2>
             {meta ? <p className="mt-2 text-xs text-muted">{meta}</p> : null}
@@ -41,6 +54,7 @@ export function Section({
           <div className="min-w-0">{children}</div>
         </div>
       </Shell>
+      {bleed ? <div className="pb-20 md:pb-section">{bleed}</div> : null}
     </section>
   );
 }
@@ -68,7 +82,7 @@ export function Lead({ children }: { children: string }) {
   return (
     <AnimatedText
       text={children.replace(/\s+/g, " ").trim()}
-      className="font-display max-w-[34ch] text-xl font-light text-ink md:text-2xl"
+      className="font-display max-w-[34ch] text-lg font-light text-ink sm:text-xl md:text-2xl"
     />
   );
 }

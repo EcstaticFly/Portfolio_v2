@@ -1,4 +1,10 @@
-import { STATS_REVALIDATE, type CodeforcesStats, type RatingPoint } from "./types";
+import { toLocalDate } from "./activity";
+import {
+  STATS_REVALIDATE,
+  type ActivityDay,
+  type CodeforcesStats,
+  type RatingPoint,
+} from "./types";
 
 const API = "https://codeforces.com/api";
 
@@ -23,6 +29,7 @@ interface CfRatingChange {
 
 interface CfSubmission {
   verdict?: string;
+  creationTimeSeconds: number;
   problem: { contestId?: number; index: string; name: string };
 }
 
@@ -64,6 +71,19 @@ export async function getCodeforces(
       solvedKeys.add(`${s.problem.contestId ?? "x"}-${s.problem.index}`);
     }
 
+    // Every submission day, not only solved ones: "active" means the
+    // day was worked, which is what the heatmap and streaks describe.
+    const perDay = new Map<string, number>();
+    for (const sub of submissions) {
+      if (!sub.creationTimeSeconds) continue;
+      // Bucketed in IST rather than UTC — see toLocalDate.
+      const date = toLocalDate(sub.creationTimeSeconds);
+      perDay.set(date, (perDay.get(date) ?? 0) + 1);
+    }
+    const activity: ActivityDay[] = [...perDay.entries()].map(
+      ([date, count]) => ({ date, count })
+    );
+
     const history: RatingPoint[] = changes.map((c) => ({
       t: c.ratingUpdateTimeSeconds,
       rating: c.newRating,
@@ -79,6 +99,7 @@ export async function getCodeforces(
       contests: changes.length,
       solved: solvedKeys.size,
       history,
+      activity,
     };
   } catch {
     return null;

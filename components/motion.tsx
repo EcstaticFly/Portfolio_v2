@@ -1,6 +1,7 @@
 "use client";
 
 import { motion, useReducedMotion, type Variants } from "framer-motion";
+import { Fragment } from "react";
 import type { ElementType, ReactNode } from "react";
 
 const EASE = [0.22, 1, 0.36, 1] as const;
@@ -80,27 +81,34 @@ export function AnimatedText({
         {...play}
       >
         {words.map((word, w) => (
-          <span key={`${word}-${w}`} className="inline-block whitespace-pre">
-            {[...word].map((ch, c) => (
-              <span
-                key={`${ch}-${c}`}
-                // The clipping edge. Padding plus a matching negative
-                // margin gives descenders room without adding height.
-                className="inline-block overflow-hidden align-bottom"
-                style={{ paddingBottom: "0.16em", marginBottom: "-0.16em" }}
-              >
-                <motion.span
-                  data-entrance=""
-                  className="inline-block"
-                  variants={glyph}
-                  transition={reduced ? { duration: 0 } : undefined}
+          <Fragment key={`${word}-${w}`}>
+            {/* `max-w-full` lets a long word wrap between its own glyphs
+                rather than forcing the line — without it a single long
+                word at display size widens the whole layout viewport on
+                narrow screens. The space is a real text node outside the
+                wrapper, so lines still break between words normally. */}
+            <span className="inline-block max-w-full align-bottom">
+              {[...word].map((ch, c) => (
+                <span
+                  key={`${ch}-${c}`}
+                  // The clipping edge. Padding plus a matching negative
+                  // margin gives descenders room without adding height.
+                  className="inline-block overflow-hidden align-bottom"
+                  style={{ paddingBottom: "0.16em", marginBottom: "-0.16em" }}
                 >
-                  {ch}
-                </motion.span>
-              </span>
-            ))}
-            {w < words.length - 1 ? " " : ""}
-          </span>
+                  <motion.span
+                    data-entrance=""
+                    className="inline-block"
+                    variants={glyph}
+                    transition={reduced ? { duration: 0 } : undefined}
+                  >
+                    {ch}
+                  </motion.span>
+                </span>
+              ))}
+            </span>
+            {w < words.length - 1 ? " " : null}
+          </Fragment>
         ))}
       </motion.span>
     </Tag>

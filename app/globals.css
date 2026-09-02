@@ -29,7 +29,6 @@
   --accent-wash: color-mix(in oklab, var(--accent) 12%, var(--bg));
 
   --ease: cubic-bezier(0.22, 1, 0.36, 1);
-  --theme-ms: 180ms;
 
   color-scheme: light;
 }
@@ -102,6 +101,12 @@
 
 @layer base {
   html {
+    /* Horizontal containment belongs on the viewport element, not body:
+       `overflow-x` on body does not reliably propagate, and pairing
+       `clip` with a `visible` cross-axis makes that axis compute to
+       `auto`. `clip` rather than `hidden` because `hidden` would turn
+       this into a scroll container and break the sticky section rails. */
+    overflow-x: clip;
     scroll-behavior: smooth;
     scroll-padding-top: 6rem;
     -webkit-font-smoothing: antialiased;
@@ -109,10 +114,6 @@
   }
 
   body {
-    /* `clip` rather than `hidden`: it contains the full-bleed marquee
-       without creating a scroll container, which would break the
-       sticky section rails. */
-    overflow-x: clip;
     background-color: var(--bg);
     color: var(--text);
     font-family: var(--font-body);
@@ -187,16 +188,29 @@
 }
 
 /* ── Theme switch ─────────────────────────────────────────────
-   Transitions are enabled only while the class is present, so the
-   first paint never animates and only the toggle does. */
-html.theme-transition,
-html.theme-transition *,
-html.theme-transition *::before,
-html.theme-transition *::after {
-  transition: background-color var(--theme-ms) ease,
-    border-color var(--theme-ms) ease, color var(--theme-ms) ease,
-    fill var(--theme-ms) ease, stroke var(--theme-ms) ease !important;
-}
+   The switch is instant: flip `data-theme`, repaint once, done.
+
+   Two richer approaches were built and measured, and both were slower
+   in the way that actually matters — how long it takes before the page
+   settles:
+
+   1. Transitioning colours per element. A `transition` on every node so
+      colours ease between themes. On /stats that is several hundred
+      elements (the heatmap alone was ~370 rects with an animated
+      `fill`) and it was by far the worst: 13,552ms longest blocking
+      task at 4x CPU throttle.
+   2. A circular wipe via the View Transitions API. Much better than the
+      above, and it looked good — but the API must capture two
+      full-viewport snapshots and run a style recalc *before* the first
+      frame of the animation. On a long page that pre-roll is a visible
+      stall on click, which is exactly the lag this is meant to remove.
+
+   So: nothing animates. There is no colour transition on theme change
+   anywhere, and no snapshotting. The cost is one style recalc and one
+   repaint, which is the floor for changing a themed custom property.
+
+   Do not reintroduce a document-wide `transition` rule to smooth this.
+   It is the single most expensive thing that was ever in this file. */
 
 /* ── Skills marquee ───────────────────────────────────────────
    Two tracks drifting in opposite directions. The content is rendered

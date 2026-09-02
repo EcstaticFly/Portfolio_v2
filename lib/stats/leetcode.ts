@@ -3,6 +3,8 @@ import {
   type LeetCodeStats,
   type RatingPoint,
   type TopicCount,
+  type Badge,
+  type ActivityDay,
 } from "./types";
 
 const ENDPOINT = "https://leetcode.com/graphql";
@@ -23,6 +25,8 @@ const QUERY = `
         intermediate { tagName problemsSolved }
         fundamental { tagName problemsSolved }
       }
+      badges { displayName creationDate }
+      userCalendar { activeYears }
     }
     userContestRanking(username: $username) {
       rating
@@ -61,6 +65,8 @@ interface LeetCodeResponse {
         intermediate: TagCount[];
         fundamental: TagCount[];
       } | null;
+      badges: { displayName: string; creationDate: string | null }[] | null;
+      userCalendar: { activeYears: number[] | null } | null;
     } | null;
     userContestRanking: {
       rating: number | null;
@@ -83,6 +89,58 @@ interface LeetCodeResponse {
 
 const pick = (rows: DifficultyCount[] | undefined, key: string): number =>
   rows?.find((r) => r.difficulty === key)?.count ?? 0;
+
+const CALENDAR_QUERY = `
+  query calendar($username: String!, $year: Int) {
+    matchedUser(username: $username) {
+      userCalendar(year: $year) { submissionCalendar }
+    }
+  }
+`;
+
+/**
+ * LeetCode reports its calendar one year at a time, so each active year
+ * is a separate request. They run in parallel and are cached like every
+ * other call, and a year that fails is simply skipped rather than
+ * failing the platform.
+ */
+async function getYear(
+  handle: string,
+  year: number
+): Promise<ActivityDay[]> {
+  try {
+    const res = await fetch(ENDPOINT, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Referer: "https://leetcode.com",
+        "User-Agent": "suyash-portfolio",
+      },
+      body: JSON.stringify({
+        query: CALENDAR_QUERY,
+        variables: { username: handle, year },
+      }),
+      next: { revalidate: STATS_REVALIDATE },
+    });
+    if (!res.ok) return [];
+    const body = (await res.json()) as {
+      data?: {
+        matchedUser: {
+          userCalendar: { submissionCalendar: string | null } | null;
+        } | null;
+      };
+    };
+    const raw = body.data?.matchedUser?.userCalendar?.submissionCalendar;
+    if (!raw) return [];
+    const map = JSON.parse(raw) as Record<string, number>;
+    return Object.entries(map).map(([ts, count]) => ({
+      date: new Date(Number(ts) * 1000).toISOString().slice(0, 10),
+      count,
+    }));
+  } catch {
+    return [];
+  }
+}
 
 export async function getLeetCode(
   handle: string
@@ -135,6 +193,18 @@ export async function getLeetCode(
       .map((t) => ({ name: t.tagName, solved: t.problemsSolved }))
       .sort((a, b) => b.solved - a.solved);
 
+    const badges: Badge[] = (user.badges ?? []).map((b) => ({
+      name: b.displayName,
+      platform: "LeetCode",
+      date: b.creationDate ?? null,
+      tier: null,
+    }));
+
+    const years = user.userCalendar?.activeYears ?? [];
+    const activity = (await Promise.all(years.map((y) => getYear(handle, y))))
+      .flat()
+      .filter((d) => d.count > 0);
+
     return {
       handle: user.username,
       solved: pick(solved, "All"),
@@ -155,6 +225,8 @@ export async function getLeetCode(
       profileRanking: user.profile?.ranking ?? null,
       history,
       topics,
+      badges,
+      activity,
     };
   } catch {
     return null;

@@ -23,6 +23,13 @@ export function formatNumber(value: number): string {
   return new Intl.NumberFormat("en-US").format(value);
 }
 
+/** "A, B and C" — used wherever a list of platforms is named in prose. */
+export function listJoin(items: string[]): string {
+  if (items.length <= 1) return items[0] ?? "";
+  if (items.length === 2) return `${items[0]} and ${items[1]}`;
+  return `${items.slice(0, -1).join(", ")} and ${items[items.length - 1]}`;
+}
+
 /**
  * "Last updated" line on /stats. Rendered on the server, so it is pinned
  * to a fixed timezone — otherwise the server's string and the client's

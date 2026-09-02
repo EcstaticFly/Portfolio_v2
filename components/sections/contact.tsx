@@ -11,7 +11,7 @@ export function Contact() {
   return (
     <Section id="contact" label="Contact" meta="Open to internships">
       <Reveal>
-        <p className="font-display max-w-[20ch] text-3xl leading-[1.1] font-light text-ink md:text-4xl">
+        <p className="font-display max-w-[20ch] text-2xl leading-[1.1] font-light text-ink sm:text-3xl md:text-4xl">
           Have something that needs building?
         </p>
       </Reveal>
@@ -27,7 +27,7 @@ export function Contact() {
       <Reveal delay={0.1}>
         <a
           href={`mailto:${site.email}`}
-          className="font-display link-rule mt-10 inline-block text-xl font-light text-ink md:text-2xl"
+          className="font-display link-rule mt-10 inline-block max-w-full text-lg font-light break-all text-ink sm:text-xl md:text-2xl"
         >
           {site.email}
         </a>
@@ -46,7 +46,7 @@ export function Contact() {
                   href={social.href}
                   target="_blank"
                   rel="noreferrer noopener"
-                  className="link-rule text-sm text-ink"
+                  className="link-rule text-sm break-all text-ink"
                 >
                   {social.display}
                 </a>
@@ -60,7 +60,7 @@ export function Contact() {
                 href={site.resume}
                 target="_blank"
                 rel="noreferrer noopener"
-                className="link-rule text-sm text-ink"
+                className="link-rule text-sm break-all text-ink"
               >
                 resume.pdf
               </a>
