@@ -3,17 +3,17 @@ import { Fraunces } from "next/font/google";
 
 /**
  * Display face. Fraunces is variable across three axes, and we use them:
- * `opsz` lets the 96px hero be drawn differently from a 20px pull quote
- * rather than merely scaled, and a touch of SOFT/WONK keeps the serifs
- * from reading as a stock system serif.
+ * `opsz` lets the hero be drawn differently from a 20px pull quote rather
+ * than merely scaled, and a touch of SOFT/WONK keeps the serifs from
+ * reading as a stock system serif.
+ *
+ * This costs about 118KB against ~70KB for two static cuts. That trade
+ * was made deliberately in favour of the type.
  */
 export const fraunces = Fraunces({
   subsets: ["latin"],
   display: "swap",
   variable: "--font-display",
-  // Weight is omitted deliberately: next/font only allows custom axes on
-  // the fully variable file, which is what we want here anyway — the
-  // whole 100–900 range plus SOFT, WONK and opsz in one download.
   axes: ["SOFT", "WONK", "opsz"],
 });
 

@@ -1,5 +1,4 @@
 import {
-  STATS_REVALIDATE,
   type ActivityDay,
   type Badge,
   type Code360Stats,
@@ -29,7 +28,7 @@ async function getContributions(uuid: string): Promise<ActivityDay[]> {
           "User-Agent": "suyash-portfolio",
           Accept: "application/json",
         },
-        next: { revalidate: STATS_REVALIDATE },
+        cache: "no-store",
       }
     );
     if (!res.ok) return [];
@@ -79,7 +78,7 @@ export async function getCode360(uuid: string): Promise<Code360Stats | null> {
           "User-Agent": "suyash-portfolio",
           Accept: "application/json",
         },
-        next: { revalidate: STATS_REVALIDATE },
+        cache: "no-store",
       }
     );
     if (!res.ok) throw new Error(`Code360: HTTP ${res.status}`);

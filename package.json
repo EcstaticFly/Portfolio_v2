@@ -7,7 +7,8 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "dev:webpack": "next dev --webpack"
+    "dev:webpack": "next dev --webpack",
+    "test:stats": "tsx lib/stats/snapshot.test.ts"
   },
   "dependencies": {
     "cheerio": "^1.2.0",
@@ -27,6 +28,7 @@
     "eslint": "^9",
     "eslint-config-next": "16.3.0",
     "tailwindcss": "^4",
+    "tsx": "^4.23.13",
     "typescript": "^5"
   }
 }

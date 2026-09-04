@@ -114,6 +114,7 @@ export function Skills() {
   const rowA = all.filter((_, i) => i % 2 === 0);
   const rowB = all.filter((_, i) => i % 2 === 1);
 
+
   return (
     <Section
       id="skills"

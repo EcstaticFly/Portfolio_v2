@@ -8,7 +8,7 @@ export const site = {
   name: "Suyash Pandey",
   /** Used for the wordmark and the browser tab */
   shortName: "Suyash Pandey",
-  role: "Full-stack developer",
+  role: "Software developer",
   email: "suyashpandey607@gmail.com",
   location: "Ranchi, India",
   /** Canonical origin, used for metadata. Update after the first deploy. */

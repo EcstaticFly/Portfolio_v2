@@ -67,7 +67,7 @@ export function Hero({ live }: { live: HeroLiveStat[] }) {
 
             <AnimatedText
               as="p"
-              text="I build backends that hold up once the traffic actually arrives."
+              text="I build software that holds up once real users arrive."
               className="font-display mt-8 max-w-[24ch] text-xl leading-[1.18] font-light text-ink sm:text-2xl md:text-3xl"
               onMount
               delay={0.9}
@@ -78,8 +78,9 @@ export function Hero({ live }: { live: HeroLiveStat[] }) {
               <StaggerItem>
                 <p className="max-w-[54ch] text-sm text-muted">
                   Computer Science and Engineering at IIIT Ranchi, class of
-                  2027. Right now I write frontends for pre-release AI model
-                  evaluation at Outlier.ai. Before that I shipped the backend
+                  2027. I build platforms across the stack &mdash; currently
+                  writing React and Next.js interfaces for pre-release AI
+                  model evaluation at Outlier.ai, after shipping the system
                   that took a platform through 100,000 registrations in its
                   first two days.
                 </p>

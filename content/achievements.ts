@@ -1,4 +1,11 @@
 export interface Achievement {
+  /**
+   * Set on entries whose figures are also fetched live. The UI swaps in
+   * the current numbers when it has them, so this file cannot drift out
+   * of step with /stats — which it had: this said 1672 and "500+" while
+   * the live data said 1675 and 632.
+   */
+  id?: "competitive";
   /** The measurable part, set large — the reason the line exists */
   figure: string;
   /** What the figure refers to */
@@ -30,6 +37,7 @@ export const achievements: Achievement[] = [
     weight: 0.8,
   },
   {
+    id: "competitive",
     figure: "3★ / Pupil",
     title: "CodeChef and Codeforces",
     detail:

@@ -8,7 +8,7 @@ import { site } from "@/content/site";
 import "./globals.css";
 
 const description =
-  "Suyash Pandey is a full-stack developer and competitive programmer studying computer science at IIIT Ranchi. He builds backends that survive real traffic.";
+  "Suyash Pandey is a software developer and competitive programmer studying computer science at IIIT Ranchi. He builds web applications end to end, from interface to infrastructure.";
 
 export const metadata: Metadata = {
   metadataBase: site.url.startsWith("http") ? new URL(site.url) : undefined,

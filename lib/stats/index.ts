@@ -3,26 +3,134 @@ import { getCodeforces } from "./codeforces";
 import { getLeetCode } from "./leetcode";
 import { getCodeChef } from "./codechef";
 import { getCode360 } from "./code360";
-import { getGitHub } from "./github";
+import { getGitHub, hasToken } from "./github";
 import { mergeActivity } from "./activity";
-import type { Badge, StatsBundle } from "./types";
+import { readSnapshot, storeDriver, writeSnapshot } from "./store";
+import {
+  emptySnapshot,
+  mergeSnapshot,
+  normalise,
+  PLATFORM_KEYS,
+  type FetchedPlatforms,
+} from "./snapshot";
+import {
+  LANGUAGE_REFRESH_SECONDS,
+  type Badge,
+  type PlatformKey,
+  type StatsBundle,
+  type StatsSnapshot,
+} from "./types";
 
 export * from "./types";
+export { PLATFORM_KEYS } from "./snapshot";
+export { storeDriver } from "./store";
 
 /**
- * Fetches every platform in parallel. Each getter already swallows its
- * own failures and resolves to null, so one platform being down can
- * never reject this call or fail the render — the affected section
- * simply reports itself as unavailable while the rest stay live.
+ * How the numbers on this site actually reach the page.
+ *
+ * Nothing a visitor does causes a platform to be fetched. The scheduled
+ * refresh reads all five, reconciles the answers against the last-known
+ * good record, and stores one snapshot. The pages render from that
+ * snapshot and are served as static HTML from the CDN.
+ *
+ * That indirection is what buys two things at once: a platform being
+ * down no longer blanks a section — its previous reading is carried
+ * forward and labelled — and the visitor still pays nothing, because the
+ * store is read while a page is being regenerated in the background, not
+ * while someone is waiting for it.
  */
-export async function getStats(): Promise<StatsBundle> {
+
+/** Turns each getter's silent null into a result the merge can label. */
+async function attempt<T>(
+  run: () => Promise<T | null>
+): Promise<{ value: T | null; error: string | null }> {
+  try {
+    const value = await run();
+    return { value, error: value ? null : "no usable response" };
+  } catch (error) {
+    return {
+      value: null,
+      error: error instanceof Error ? error.message : "unknown error",
+    };
+  }
+}
+
+export interface FetchOptions {
+  /**
+   * Whether to spend GitHub's per-repository requests on exact language
+   * byte counts. Unauthenticated, that fan-out is most of the hourly
+   * rate limit, so it runs on its own slower clock.
+   */
+  languages: boolean;
+}
+
+/** Reads every platform in parallel. Cannot reject. */
+export async function fetchPlatforms(
+  options: FetchOptions = { languages: true }
+): Promise<FetchedPlatforms> {
   const [codeforces, leetcode, codechef, code360, github] = await Promise.all([
-    getCodeforces(handles.codeforces),
-    getLeetCode(handles.leetcode),
-    getCodeChef(handles.codechef),
-    getCode360(handles.code360),
-    getGitHub(handles.github),
+    attempt(() => getCodeforces(handles.codeforces)),
+    attempt(() => getLeetCode(handles.leetcode)),
+    attempt(() => getCodeChef(handles.codechef)),
+    attempt(() => getCode360(handles.code360)),
+    attempt(() => getGitHub(handles.github, { languages: options.languages })),
   ]);
+  return { codeforces, leetcode, codechef, code360, github };
+}
+
+/** Whether the language pass is due, given what is already stored. */
+function languagesDue(stored: StatsSnapshot, now: number): boolean {
+  if (hasToken()) return true; // 5,000 requests an hour; no reason to skip
+  const at = stored.platforms.github?.languagesAt;
+  if (!at) return true;
+  const age = (now - Date.parse(at)) / 1000;
+  return !Number.isFinite(age) || age >= LANGUAGE_REFRESH_SECONDS;
+}
+
+export interface RefreshReport {
+  fresh: PlatformKey[];
+  carriedForward: PlatformKey[];
+  missing: PlatformKey[];
+  languagesRefreshed: boolean;
+  stored: boolean;
+  driver: string;
+  savedAt: string;
+}
+
+/**
+ * One refresh cycle: read the stored record, fetch everything, reconcile,
+ * store the result. This is the only code path that talks to a platform.
+ */
+export async function refreshStats(): Promise<{
+  snapshot: StatsSnapshot;
+  report: RefreshReport;
+}> {
+  const now = Date.now();
+  const stored = normalise(await readSnapshot());
+  const languages = languagesDue(stored, now);
+
+  const fetched = await fetchPlatforms({ languages });
+  const snapshot = mergeSnapshot(stored, fetched, now);
+  const wrote = await writeSnapshot(snapshot);
+
+  const report: RefreshReport = {
+    fresh: PLATFORM_KEYS.filter((k) => fetched[k].value !== null),
+    carriedForward: PLATFORM_KEYS.filter(
+      (k) => fetched[k].value === null && snapshot.platforms[k] !== null
+    ),
+    missing: PLATFORM_KEYS.filter((k) => snapshot.platforms[k] === null),
+    languagesRefreshed: languages && fetched.github.value !== null,
+    stored: wrote,
+    driver: storeDriver(),
+    savedAt: snapshot.savedAt,
+  };
+
+  return { snapshot, report };
+}
+
+/** Derives the shape the pages render from. */
+export function toBundle(snapshot: StatsSnapshot): StatsBundle {
+  const { codeforces, leetcode, codechef, code360, github } = snapshot.platforms;
 
   // Only the judges that publish per-day data can contribute here, and
   // the summary names them so the figure is never presented as covering
@@ -48,11 +156,39 @@ export async function getStats(): Promise<StatsBundle> {
     github,
     activity,
     badges,
-    fetchedAt: new Date().toISOString(),
+    meta: snapshot.meta,
+    fetchedAt: snapshot.savedAt,
   };
 }
 
-/** Total distinct problems solved across the three judges we can read. */
+/**
+ * What the pages call. Normally this is one read of the snapshot and no
+ * network at all.
+ *
+ * The seed path exists for the very first render on a fresh deployment,
+ * before any scheduled run has happened: rather than showing an empty
+ * page, it fetches once and stores the result. After that it never runs
+ * again, because the snapshot is no longer empty.
+ */
+export async function getStats(): Promise<StatsBundle> {
+  const stored = await readSnapshot();
+  if (stored) {
+    const snapshot = normalise(stored);
+    const hasAny = PLATFORM_KEYS.some((k) => snapshot.platforms[k] !== null);
+    if (hasAny) return toBundle(snapshot);
+  }
+
+  try {
+    const { snapshot } = await refreshStats();
+    return toBundle(snapshot);
+  } catch {
+    // A total failure on first render still has to produce a page. Every
+    // section already knows how to say "unavailable".
+    return toBundle(emptySnapshot());
+  }
+}
+
+/** Total distinct problems solved across the four judges we can read. */
 export function totalSolved(stats: StatsBundle): number {
   return (
     (stats.codeforces?.solved ?? 0) +
@@ -60,4 +196,28 @@ export function totalSolved(stats: StatsBundle): number {
     (stats.codechef?.solved ?? 0) +
     (stats.code360?.solved ?? 0)
   );
+}
+
+/**
+ * Platforms whose reading is being carried forward from an earlier
+ * successful fetch, so the page can label them rather than passing old
+ * numbers off as current.
+ */
+export function staleSources(stats: StatsBundle): {
+  name: string;
+  since: string;
+}[] {
+  const labels: Record<PlatformKey, string> = {
+    codeforces: "Codeforces",
+    leetcode: "LeetCode",
+    codechef: "CodeChef",
+    code360: "Code360",
+    github: "GitHub",
+  };
+  return PLATFORM_KEYS.filter(
+    (key) => stats[key] !== null && stats.meta[key]?.stale
+  ).map((key) => ({
+    name: labels[key],
+    since: stats.meta[key]!.updatedAt,
+  }));
 }
