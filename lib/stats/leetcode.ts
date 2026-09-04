@@ -1,4 +1,5 @@
 import {
+  REQUEST_TIMEOUT_MS,
   type LeetCodeStats,
   type RatingPoint,
   type TopicCount,
@@ -120,6 +121,7 @@ async function getYear(
         variables: { username: handle, year },
       }),
       cache: "no-store",
+      signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
     });
     if (!res.ok) return [];
     const body = (await res.json()) as {
@@ -155,6 +157,7 @@ export async function getLeetCode(
       },
       body: JSON.stringify({ query: QUERY, variables: { username: handle } }),
       cache: "no-store",
+      signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
     });
     if (!res.ok) throw new Error(`LeetCode: HTTP ${res.status}`);
 

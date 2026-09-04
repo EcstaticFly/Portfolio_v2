@@ -1,4 +1,5 @@
 import * as cheerio from "cheerio";
+import { REQUEST_TIMEOUT_MS } from "./types";
 import type { ActivityDay, GitHubStats, LanguageShare } from "./types";
 
 /**
@@ -42,6 +43,7 @@ async function api<T>(path: string): Promise<T | null> {
     const res = await fetch(`https://api.github.com${path}`, {
       headers: apiHeaders(),
       cache: "no-store",
+      signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
     });
     if (!res.ok) return null;
     return (await res.json()) as T;
@@ -104,6 +106,7 @@ async function getCalendar(
       {
         headers: { "User-Agent": BROWSER_UA, Accept: "text/html" },
         cache: "no-store",
+      signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
       }
     );
     if (!res.ok) return null;

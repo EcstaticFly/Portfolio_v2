@@ -1,5 +1,7 @@
 import { toLocalDate } from "./activity";
 import {
+  CODEFORCES_BUDGET_MS,
+  REQUEST_TIMEOUT_MS,
   type ActivityDay,
   type CodeforcesStats,
   type RatingPoint,
@@ -36,29 +38,29 @@ interface CfSubmission {
 const pause = (ms = 2100) => new Promise((resolve) => setTimeout(resolve, ms));
 
 /**
- * Three attempts, backing off each time.
+ * One endpoint, retried at most once, inside a shared time budget.
  *
- * Codeforces returns intermittent 504s even for well-spaced requests —
- * observed repeatedly while building this, including on a plain curl of
- * a single endpoint. Retrying is free here because it only ever runs
- * inside the scheduled refresh, where nobody is waiting.
+ * Codeforces returns intermittent 504s and — worse — sometimes simply
+ * stalls. Retrying used to be worth almost any delay, because losing this
+ * platform meant losing the rating chart and the live achievement line
+ * entirely. That is no longer true: the snapshot carries the previous
+ * reading forward and labels it, so the honest trade now is to give up
+ * quickly and let the stored value stand rather than to hold the whole
+ * refresh open. Resolves to null instead of throwing, so one dead
+ * endpoint does not cost the two that answered.
  */
-async function cf<T>(path: string, attempt = 0): Promise<T> {
-  try {
-    return await cfOnce<T>(path);
-  } catch (error) {
-    if (attempt >= 2) throw error;
-    await pause(2100 * (attempt + 1));
-    return cf<T>(path, attempt + 1);
-  }
-}
-
-/** Resolves to null instead of throwing, so one dead endpoint is not fatal. */
-async function soft<T>(path: string): Promise<T | null> {
-  try {
-    return await cf<T>(path);
-  } catch {
-    return null;
+async function soft<T>(path: string, deadline: number): Promise<T | null> {
+  for (let attempt = 0; ; attempt++) {
+    if (Date.now() >= deadline) return null;
+    try {
+      return await cfOnce<T>(path);
+    } catch {
+      // Retry only if the budget can still fit the mandated pause and
+      // another full request; otherwise stop rather than burn the time.
+      if (attempt >= 1) return null;
+      if (Date.now() + 2100 + REQUEST_TIMEOUT_MS > deadline) return null;
+      await pause();
+    }
   }
 }
 
@@ -68,6 +70,7 @@ async function cfOnce<T>(path: string): Promise<T> {
     // whole job is to see the platform's current state. Fallback is the
     // stored snapshot's business, not the HTTP layer's.
     cache: "no-store",
+      signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
     headers: { "User-Agent": "suyash-portfolio" },
   });
   if (!res.ok) throw new Error(`Codeforces ${path}: HTTP ${res.status}`);
@@ -81,22 +84,30 @@ export async function getCodeforces(
 ): Promise<CodeforcesStats | null> {
   // Sequential, spaced, and deliberately not Promise.all: Codeforces
   // documents a limit of one request every two seconds, and firing
-  // these three together reliably draws 504s. The delay is affordable
-  // because it is only ever paid inside the background refresh.
+  // these three together reliably draws 504s.
   //
   // Each endpoint can also fail on its own. Rather than losing the whole
   // platform to one bad call, whatever came back is used and the rest is
   // left null for the snapshot merge to fill in from the last good read.
+  //
+  // The shared deadline is what keeps a stall from becoming a function
+  // timeout. The pauses stay unconditional so the rate limit is honoured
+  // even on the run where we are about to give up.
+  const deadline = Date.now() + CODEFORCES_BUDGET_MS;
+
   const users = await soft<CfUser[]>(
-    `user.info?handles=${encodeURIComponent(handle)}`
+    `user.info?handles=${encodeURIComponent(handle)}`,
+    deadline
   );
   await pause();
   const changes = await soft<CfRatingChange[]>(
-    `user.rating?handle=${encodeURIComponent(handle)}`
+    `user.rating?handle=${encodeURIComponent(handle)}`,
+    deadline
   );
   await pause();
   const submissions = await soft<CfSubmission[]>(
-    `user.status?handle=${encodeURIComponent(handle)}&from=1&count=10000`
+    `user.status?handle=${encodeURIComponent(handle)}&from=1&count=10000`,
+    deadline
   );
 
   // Nothing at all came back: Codeforces is down, not merely flaky.

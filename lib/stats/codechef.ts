@@ -1,5 +1,6 @@
 import * as cheerio from "cheerio";
 import {
+  REQUEST_TIMEOUT_MS,
   type ActivityDay,
   type Badge,
   type CodeChefStats,
@@ -30,6 +31,7 @@ export async function getCodeChef(
           Accept: "text/html",
         },
         cache: "no-store",
+      signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
       }
     );
     if (!res.ok) throw new Error(`CodeChef: HTTP ${res.status}`);

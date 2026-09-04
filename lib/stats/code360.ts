@@ -1,4 +1,5 @@
 import {
+  REQUEST_TIMEOUT_MS,
   type ActivityDay,
   type Badge,
   type Code360Stats,
@@ -29,6 +30,7 @@ async function getContributions(uuid: string): Promise<ActivityDay[]> {
           Accept: "application/json",
         },
         cache: "no-store",
+      signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
       }
     );
     if (!res.ok) return [];
@@ -79,6 +81,7 @@ export async function getCode360(uuid: string): Promise<Code360Stats | null> {
           Accept: "application/json",
         },
         cache: "no-store",
+      signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
       }
     );
     if (!res.ok) throw new Error(`Code360: HTTP ${res.status}`);

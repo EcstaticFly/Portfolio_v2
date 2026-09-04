@@ -46,6 +46,28 @@ export const LANGUAGE_RETRY_SECONDS = 60 * 60;
  * says it is unavailable, so the page can never quietly present numbers
  * from a profile that has been unreachable for a month.
  */
+/**
+ * Hard ceiling on any single outbound request.
+ *
+ * Without one, a platform that stalls rather than refusing will hang the
+ * whole refresh: Codeforces was measured taking 156 seconds across its
+ * retries and then failing, which overran the function's 60-second limit
+ * and turned an upstream hiccup into a dead endpoint. A background job
+ * must bound its own work.
+ */
+export const REQUEST_TIMEOUT_MS = 8_000;
+
+/**
+ * Total time Codeforces may take across all three of its endpoints.
+ *
+ * It is the only platform that must be called sequentially (one request
+ * per two seconds), so it is the only one that can accumulate. Since the
+ * snapshot now carries the previous reading forward, giving up early
+ * costs nothing that matters — the section still shows real figures,
+ * labelled with their date.
+ */
+export const CODEFORCES_BUDGET_MS = 25_000;
+
 export const STALE_LIMIT_DAYS = 21;
 
 /** Snapshot format. Bumping this discards incompatible stored data. */
