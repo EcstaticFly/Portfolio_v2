@@ -3,13 +3,10 @@ import { About } from "@/components/sections/about";
 import { Experience } from "@/components/sections/experience";
 import { Work } from "@/components/sections/work";
 import { Skills } from "@/components/sections/skills";
-import {
-  Achievements,
-  type LiveAchievement,
-} from "@/components/sections/achievements";
+import { Achievements } from "@/components/sections/achievements";
 import { Contact } from "@/components/sections/contact";
-import { getStats, STATS_REVALIDATE } from "@/lib/stats";
-import { formatNumber, round, roundedHundreds } from "@/lib/utils";
+import { getStats, liveAchievement, STATS_REVALIDATE } from "@/lib/stats";
+import { formatNumber, round } from "@/lib/utils";
 
 /**
  * The homepage is otherwise static, but the hero footnote reads the same
@@ -61,21 +58,9 @@ export default async function HomePage() {
 
   // The competitive-programming achievement quotes numbers that are also
   // fetched live, so it is built from the same data rather than from the
-  // written copy. Only shown when the platforms it names responded.
-  const cp = stats.codechef;
-  const cf = stats.codeforces;
-  const lc = stats.leetcode;
-  // Codeforces reports its rank lowercase ("pupil").
-  const cfRank = cf?.rank
-    ? cf.rank.replace(/^\w/, (c) => c.toUpperCase())
-    : null;
-  const liveAward: LiveAchievement | undefined =
-    cp?.stars && cp.maxRating && cfRank && lc?.solved
-      ? {
-          figure: `${cp.stars}★ / ${cfRank}`,
-          detail: `CodeChef ${cp.stars}★ (${formatNumber(cp.maxRating)}), Codeforces ${cfRank}, LeetCode ${roundedHundreds(lc.solved)} problems solved.`,
-        }
-      : undefined;
+  // written copy. /stats derives it from the same helper, so the two
+  // pages cannot drift apart.
+  const liveAward = liveAchievement(stats);
 
   return (
     <>

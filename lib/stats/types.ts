@@ -20,6 +20,23 @@ export const STATS_REFRESH_SECONDS = 1800; // 30 minutes
 export const LANGUAGE_REFRESH_SECONDS = 6 * 60 * 60;
 
 /**
+ * How soon to try again when the last language pass had to fall back to
+ * the approximate reading.
+ *
+ * An approximation must not hold the six-hour slot: it is visibly wrong
+ * (weighting each repository's primary language by disk size put
+ * TypeScript at 71% where the real byte count is 15%), and the usual
+ * cause is a rate limit that resets within the hour.
+ *
+ * It cannot simply retry every run either. Unauthenticated, the pass is
+ * ~29 requests; twice an hour plus the ~10 others would be ~68 against a
+ * 60/hour ceiling, so retrying eagerly would exhaust the budget and
+ * guarantee the approximation stuck permanently. One hour keeps the
+ * total near 49 and still self-corrects quickly.
+ */
+export const LANGUAGE_RETRY_SECONDS = 60 * 60;
+
+/**
  * How long a platform's last-known-good reading may keep being shown
  * after that platform stopped responding.
  *

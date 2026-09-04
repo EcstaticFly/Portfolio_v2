@@ -15,6 +15,7 @@ import { Languages } from "@/components/stats/languages";
 import { achievements } from "@/content/achievements";
 import {
   getStats,
+  liveAchievement,
   staleSources,
   totalSolved,
   STATS_REVALIDATE,
@@ -187,8 +188,15 @@ export default async function StatsPage() {
     (c): c is RatingCard => c !== null
   );
 
+  // The same live override the homepage applies. Without it this page —
+  // the one that promises current figures — rendered the written
+  // fallback and disagreed with the homepage on the same achievement.
+  const live = liveAchievement(stats);
   const awards: Award[] = achievements.map((a) => ({
     ...a,
+    ...(a.id === "competitive" && live
+      ? { figure: live.figure, detail: live.detail }
+      : {}),
     weight: a.weight ?? 0.6,
   }));
 

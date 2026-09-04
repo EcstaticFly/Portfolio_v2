@@ -1,4 +1,5 @@
 import { handles } from "@/content/site";
+import { formatNumber, roundedHundreds } from "@/lib/utils";
 import { getCodeforces } from "./codeforces";
 import { getLeetCode } from "./leetcode";
 import { getCodeChef } from "./codechef";
@@ -15,6 +16,7 @@ import {
 } from "./snapshot";
 import {
   LANGUAGE_REFRESH_SECONDS,
+  LANGUAGE_RETRY_SECONDS,
   type Badge,
   type PlatformKey,
   type StatsBundle,
@@ -78,13 +80,24 @@ export async function fetchPlatforms(
   return { codeforces, leetcode, codechef, code360, github };
 }
 
-/** Whether the language pass is due, given what is already stored. */
+/**
+ * Whether the language pass is due, given what is already stored.
+ *
+ * A stored reading that is only approximate gets a much shorter window
+ * than an exact one, so a rate-limited run corrects itself within the
+ * hour instead of sitting on visibly wrong percentages for six.
+ */
 function languagesDue(stored: StatsSnapshot, now: number): boolean {
   if (hasToken()) return true; // 5,000 requests an hour; no reason to skip
-  const at = stored.platforms.github?.languagesAt;
+  const github = stored.platforms.github;
+  const at = github?.languagesAt;
   if (!at) return true;
   const age = (now - Date.parse(at)) / 1000;
-  return !Number.isFinite(age) || age >= LANGUAGE_REFRESH_SECONDS;
+  if (!Number.isFinite(age)) return true;
+  const window = github?.languagesExact
+    ? LANGUAGE_REFRESH_SECONDS
+    : LANGUAGE_RETRY_SECONDS;
+  return age >= window;
 }
 
 export interface RefreshReport {
@@ -196,6 +209,40 @@ export function totalSolved(stats: StatsBundle): number {
     (stats.codechef?.solved ?? 0) +
     (stats.code360?.solved ?? 0)
   );
+}
+
+/** Current figures for the one achievement that has live equivalents. */
+export interface LiveAchievement {
+  figure: string;
+  detail: string;
+}
+
+/**
+ * The "CodeChef and Codeforces" achievement, rebuilt from current data.
+ *
+ * This lives here rather than in either page because both of them show
+ * that entry, and when only the homepage derived it, /stats — the page
+ * that promises current figures — rendered the written fallback instead
+ * and disagreed with the homepage by three rating points.
+ *
+ * Returns undefined unless every component is present, so the section
+ * falls back to its written copy rather than showing a half-live line.
+ */
+export function liveAchievement(stats: StatsBundle): LiveAchievement | undefined {
+  const cp = stats.codechef;
+  const lc = stats.leetcode;
+  const rank = stats.codeforces?.rank
+    ? stats.codeforces.rank.replace(/^\w/, (c) => c.toUpperCase())
+    : null;
+
+  if (!cp?.stars || !cp.maxRating || !rank || !lc?.solved) return undefined;
+
+  return {
+    figure: `${cp.stars}★ / ${rank}`,
+    detail:
+      `CodeChef ${cp.stars}★ (${formatNumber(cp.maxRating)}), ` +
+      `Codeforces ${rank}, LeetCode ${roundedHundreds(lc.solved)} problems solved.`,
+  };
 }
 
 /**
