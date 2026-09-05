@@ -504,11 +504,31 @@ function levelFor(count: number): number {
   return 4;
 }
 
+/**
+ * The heatmap's own ramp, rather than the shared accent tokens.
+ *
+ * Those tokens are tuned for washes behind text, so `--accent-wash` sits
+ * at 16% accent — which put a one-submission day at rgb(52,41,31)
+ * against rgb(51,41,30) for a day with nothing. A perceptual gap of 2 in
+ * dark and 6 in light: indistinguishable, so an active week read as
+ * empty.
+ *
+ * These four mixes were chosen by measuring the rendered sRGB of each
+ * candidate and comparing adjacent steps. 38/58/78/100 gives gaps of
+ * 83, 78, 83, 95 in dark and 112, 86, 84, 89 in light — near-even, with
+ * the first step now unmistakable. Level 0 is left on the border colour
+ * so "nothing happened" still reads as part of the page rather than as
+ * data.
+ *
+ * Kept local because `--accent-wash`, `--accent-soft` and `--accent-mid`
+ * are also used by the donut, the skill chips and the hero backdrop,
+ * where the lighter values are correct.
+ */
 const LEVEL_FILL = [
   "var(--color-line, var(--border))",
-  "var(--accent-wash)",
-  "var(--accent-soft)",
-  "var(--accent-mid)",
+  "color-mix(in oklab, var(--accent) 38%, var(--bg))",
+  "color-mix(in oklab, var(--accent) 58%, var(--bg))",
+  "color-mix(in oklab, var(--accent) 78%, var(--bg))",
   "var(--accent)",
 ] as const;
 

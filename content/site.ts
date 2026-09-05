@@ -19,8 +19,8 @@ export const site = {
    */
   phone: "+91 8081290747",
   location: "Ranchi, India",
-  /** Canonical origin, used for metadata. Update after the first deploy. */
-  url: "[INSERT_PRODUCTION_URL]",
+  /** Canonical origin. Drives metadataBase, so link previews resolve. */
+  url: "https://suyash-pandey.vercel.app",
   resume: "/resume.pdf",
 } as const;
 

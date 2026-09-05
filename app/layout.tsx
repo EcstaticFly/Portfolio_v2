@@ -5,6 +5,8 @@ import { HydrationFlag } from "@/components/hydration-flag";
 import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
 import { ScrollTop } from "@/components/scroll-top";
+import { Analytics } from "@vercel/analytics/next";
+import { SpeedInsights } from "@vercel/speed-insights/next";
 import { site } from "@/content/site";
 import "./globals.css";
 
@@ -60,6 +62,20 @@ export default function RootLayout({
         <main id="main">{children}</main>
         <SiteFooter />
         <ScrollTop />
+
+        {/* Both load async and report after the page has settled, so
+            neither blocks rendering or hydration. Measured off the
+            deployment: 1.5KB and 4.7KB gzipped respectively, against
+            ~238KB of page JavaScript.
+
+            Speed Insights earns its place: every performance figure this
+            site was tuned against came from a throttled headless
+            browser, which is a simulation. This reports Core Web Vitals
+            from real visitors on real devices, which is the only way to
+            know whether the thing is actually fast for the people
+            reading it. */}
+        <Analytics />
+        <SpeedInsights />
       </body>
     </html>
   );

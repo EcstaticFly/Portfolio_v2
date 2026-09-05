@@ -23,8 +23,23 @@ const container = (stagger: number, delay: number): Variants => ({
   show: { transition: { staggerChildren: stagger, delayChildren: delay } },
 });
 
+/**
+ * The letter's resting and hidden positions.
+ *
+ * 125% rather than 100%-and-a-bit because the clipping wrapper is taller
+ * than the glyph: it carries `padding-bottom: 0.16em` so descenders have
+ * room, and `overflow: hidden` clips at the padding edge, not the
+ * content edge. At 105% the glyph cleared its own height but not that
+ * extra strip, so the top of every letter sat visible below the baseline
+ * before the animation ran — two faint dots under the tallest ascenders.
+ *
+ * Measured on the hero headline, which has the tightest leading on the
+ * site (0.95) and is therefore the worst case: 105% leaked 11.7px,
+ * 115% leaked 1.8px, and 120% was the first to clear. 125% keeps a
+ * margin for any looser use elsewhere.
+ */
 const glyph: Variants = {
-  hidden: { y: "105%" },
+  hidden: { y: "125%" },
   show: {
     y: "0%",
     transition: { duration: 0.62, ease: EASE },
