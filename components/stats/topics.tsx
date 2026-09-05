@@ -55,9 +55,9 @@ export function TopicChart({
         return (
           <li
             key={topic.name}
-            className="grid grid-cols-[9.5rem_1fr] items-center gap-4 sm:grid-cols-[12rem_1fr]"
+            className="grid grid-cols-1 gap-1.5 sm:grid-cols-[12rem_1fr] sm:items-center sm:gap-4"
           >
-            <span className="truncate text-right text-sm text-muted">
+            <span className="text-sm text-muted sm:truncate sm:text-right">
               {topic.name}
             </span>
 

@@ -16,19 +16,21 @@ export function About() {
         <div className="mt-10 grid gap-8 md:grid-cols-2 md:gap-12">
           <div className="space-y-5 text-base text-ink/80">
             <p>
-              I&rsquo;m in my third year of computer science at IIIT Ranchi, and
+              I&rsquo;m in my last year of computer science at IIIT Ranchi, and
               most of what I actually know came from shipping things that then
-              had to keep working. At Target Board that meant an API surface
-              that absorbed 100,000 registrations in its first two days without
-              falling over. At SecNode it meant streaming live scan progress
-              over SSE and WebSockets while a headless Chrome agent drove OWASP
-              ZAP underneath.
+              had to keep working. I build platforms across the stack, which in
+              practice means the interface and the machinery behind it are the
+              same job. At Target Board that meant an API surface that absorbed
+              100,000 registrations in its first two days without falling over.
+              At SecNode it meant a dashboard streaming live scan progress over
+              SSE and WebSockets while a headless Chrome agent drove OWASP ZAP
+              underneath.
             </p>
             <p>
               The other half of my time goes to competitive programming, across
               Codeforces, CodeChef and LeetCode. It&rsquo;s the same instinct as
-              the backend work: a problem, a hard constraint, and no credit for
-              a solution that only holds on the easy input.
+              the engineering work: a problem, a hard constraint, and no credit
+              for a solution that only holds on the easy input.
             </p>
           </div>
 

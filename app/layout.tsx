@@ -4,11 +4,12 @@ import { ThemeScript } from "@/components/theme-script";
 import { HydrationFlag } from "@/components/hydration-flag";
 import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
+import { ScrollTop } from "@/components/scroll-top";
 import { site } from "@/content/site";
 import "./globals.css";
 
 const description =
-  "Suyash Pandey is a full-stack developer and competitive programmer studying computer science at IIIT Ranchi. He builds backends that survive real traffic.";
+  "Suyash Pandey is a software developer and competitive programmer studying computer science at IIIT Ranchi. He builds web applications end to end, from interface to infrastructure.";
 
 export const metadata: Metadata = {
   metadataBase: site.url.startsWith("http") ? new URL(site.url) : undefined,
@@ -58,6 +59,7 @@ export default function RootLayout({
         <SiteHeader />
         <main id="main">{children}</main>
         <SiteFooter />
+        <ScrollTop />
       </body>
     </html>
   );

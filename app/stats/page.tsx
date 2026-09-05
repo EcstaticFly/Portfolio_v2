@@ -11,9 +11,13 @@ import { Awards, type Award } from "@/components/stats/awards";
 import { TopicChart } from "@/components/stats/topics";
 import { BadgeWall } from "@/components/stats/badge-wall";
 import { Heatmap } from "@/components/stats/heatmap";
+import { Languages } from "@/components/stats/languages";
 import { achievements } from "@/content/achievements";
 import {
   getStats,
+  heatmapWindowStart,
+  liveAchievement,
+  staleSources,
   totalSolved,
   STATS_REVALIDATE,
   type RatingSeries,
@@ -26,6 +30,16 @@ import { formatNumber, formatTimestamp, listJoin, round } from "@/lib/utils";
  * the cache; a visitor never triggers or waits on a platform fetch.
  * See the note on app/page.tsx for why this is a literal.
  */
+/**
+ * Both routes are prerendered and must stay that way. The seed path in
+ * getStats() performs uncached fetches on a completely empty store, and
+ * without this Next would read those and downgrade the whole page to
+ * on-demand rendering — turning every visit into a server render. This
+ * pins the page to the static path; the seed is a one-time build-time
+ * cost, and after that the page is rebuilt only by the scheduled refresh.
+ */
+export const dynamic = "force-static";
+
 export const revalidate: typeof STATS_REVALIDATE = 1800;
 
 export const metadata: Metadata = {
@@ -33,6 +47,13 @@ export const metadata: Metadata = {
   description:
     "Live competitive-programming figures for Suyash Pandey, pulled directly from Codeforces, LeetCode, CodeChef, Code360 and GitHub.",
 };
+
+/** One counted figure in the GitHub section. */
+interface GitHubFigure {
+  value: number;
+  label: string;
+  note?: string;
+}
 
 export default async function StatsPage() {
   const stats = await getStats();
@@ -168,10 +189,71 @@ export default async function StatsPage() {
     (c): c is RatingCard => c !== null
   );
 
+  // The same live override the homepage applies. Without it this page —
+  // the one that promises current figures — rendered the written
+  // fallback and disagreed with the homepage on the same achievement.
+  const live = liveAchievement(stats);
   const awards: Award[] = achievements.map((a) => ({
     ...a,
+    ...(a.id === "competitive" && live
+      ? { figure: live.figure, detail: live.detail }
+      : {}),
     weight: a.weight ?? 0.6,
   }));
+
+  // Platforms whose numbers are being carried forward from an earlier
+  // successful read, so the page can say so instead of implying they are
+  // current.
+  const stale = staleSources(stats);
+
+  // Only the window the picker can actually reach is sent to the
+  // browser. Every figure above the grid is computed server-side from
+  // the full history, so nothing is lost by withholding the rest — and
+  // this is the one payload on the page that would otherwise grow with
+  // every year of activity.
+  const heatmapDays = stats.activity
+    ? stats.activity.days.filter(
+        (d) => d.date >= heatmapWindowStart(stats.activity!.today)
+      )
+    : [];
+
+  const gh = stats.github;
+  const githubFigures: GitHubFigure[] = gh
+    ? ([
+        {
+          value: gh.totalContributions,
+          label: "Total contributions",
+          note: gh.createdYear ? `Since ${gh.createdYear}` : undefined,
+        },
+        {
+          value: gh.totalActiveDays,
+          label: "Total active days",
+          note: `${gh.longestStreak}-day longest streak`,
+        },
+        gh.stars !== null
+          ? {
+              value: gh.stars,
+              label: "Stars earned",
+              note: `Across ${formatNumber(gh.publicRepos)} public repositories`,
+            }
+          : null,
+        gh.commits !== null
+          ? { value: gh.commits, label: "Commits", note: "Authored, all repos" }
+          : null,
+        gh.pullRequests !== null
+          ? { value: gh.pullRequests, label: "Pull requests", note: "Opened anywhere" }
+          : null,
+        gh.issues !== null
+          ? { value: gh.issues, label: "Issues", note: "Opened anywhere" }
+          : null,
+      ] as (GitHubFigure | null)[]).filter((f): f is GitHubFigure => f !== null)
+    : [];
+
+
+  // GitHub keeps its own grid: its contributions are not problems
+  // solved, so folding them into the judge heatmap would overstate what
+  // "active days" means on this page.
+
 
   return (
     <>
@@ -199,12 +281,23 @@ export default async function StatsPage() {
             </StaggerItem>
             <StaggerItem className="mt-4">
               <p className="max-w-[58ch] text-sm text-muted">
-                Last updated {updated} UTC.{" "}
+                Last updated {updated} IST.{" "}
                 <Link href="/" className="link-inline">
                   Back to the portfolio
                 </Link>
               </p>
             </StaggerItem>
+            {stale.length > 0 ? (
+              <StaggerItem className="mt-3">
+                <p className="max-w-[58ch] text-sm text-muted">
+                  Carried forward from the last good reading:{" "}
+                  {listJoin(
+                    stale.map((s) => `${s.name} (${formatTimestamp(s.since)})`)
+                  )}
+                  .
+                </p>
+              </StaggerItem>
+            ) : null}
           </Stagger>
         </Shell>
       </section>
@@ -322,9 +415,15 @@ export default async function StatsPage() {
 
           <Stagger className="mt-10 flex flex-wrap gap-x-12 gap-y-6" stagger={0.08}>
             {[
-              { label: "Active days", value: stats.activity.totalActiveDays },
+              {
+                label: "Total active days",
+                value: stats.activity.totalActiveDays,
+              },
               { label: "Current streak", value: stats.activity.currentStreak },
-              { label: "Longest streak", value: stats.activity.longestStreak },
+              {
+                label: "Longest streak",
+                value: stats.activity.longestStreak,
+              },
             ].map((r) => (
               <StaggerItem key={r.label}>
                 <div className="flex flex-col-reverse">
@@ -338,19 +437,16 @@ export default async function StatsPage() {
           </Stagger>
 
           <Reveal delay={0.08} className="mt-10 w-full min-w-0">
-            <Heatmap
-              days={stats.activity.days}
-              months={12}
-              today={stats.activity.today}
-            />
+            <Heatmap days={heatmapDays} today={stats.activity.today} />
           </Reveal>
 
           <Reveal delay={0.1}>
             <p className="mt-8 max-w-[62ch] text-sm text-muted">
-              Days are unioned rather than summed, so working on two judges
-              on the same date counts once. Only{" "}
-              {listJoin(stats.activity.sources)} publish per-day activity;
-              the other platforms are not represented here.
+              The three figures above are all-time totals and do not change
+              with the period shown below. Days are unioned rather than
+              summed, so working on two judges on the same date counts
+              once. Only {listJoin(stats.activity.sources)} publish per-day
+              activity; the other platforms are not represented here.
             </p>
           </Reveal>
         </Section>
@@ -389,6 +485,53 @@ export default async function StatsPage() {
       ) : null}
 
       <Section
+        id="github"
+        label="GitHub"
+        meta={
+          gh?.createdYear ? `Public work since ${gh.createdYear}` : "Public work"
+        }
+      >
+        <Lead>What the work looks like away from the judges.</Lead>
+
+        {gh ? (
+          <>
+            <Stagger
+              className="mt-10 grid grid-cols-2 gap-x-8 gap-y-12 md:grid-cols-3"
+              stagger={0.08}
+            >
+              {githubFigures.map((figure) => (
+                <StaggerItem key={figure.label}>
+                  <Figure
+                    value={figure.value}
+                    label={figure.label}
+                    note={figure.note}
+                  />
+                </StaggerItem>
+              ))}
+            </Stagger>
+
+            {gh.languages.length > 0 ? (
+              <Reveal delay={0.08} className="mt-16">
+                <h3 className="mb-8 text-sm text-muted">
+                  Languages, by share of code written
+                </h3>
+                <Languages languages={gh.languages} />
+                <p className="mt-10 max-w-[62ch] text-sm text-muted">
+                  {gh.languagesExact
+                    ? "Shares are real byte counts summed across every public repository I own, which is why a handful of large notebooks can outweigh a lot of small scripts."
+                    : "Shares are weighted from each repository’s primary language and size — the reading available without an API token, and close rather than exact."}
+                </p>
+              </Reveal>
+            ) : null}
+          </>
+        ) : (
+          <div className="mt-8">
+            <Unavailable platform="GitHub" />
+          </div>
+        )}
+      </Section>
+
+      <Section
         id="ratings"
         label="Contest ratings"
         meta="Current and peak, per platform"
@@ -416,7 +559,7 @@ export default async function StatsPage() {
         </div>
       </Section>
 
-      <Section id="platforms" label="By platform" meta={`Updated ${updated} UTC`}>
+      <Section id="platforms" label="By platform" meta={`Updated ${updated} IST`}>
         <Stagger stagger={0.08}>
           <StaggerItem>
             <Platform
@@ -427,6 +570,11 @@ export default async function StatsPage() {
             >
               {stats.leetcode ? (
                 <Readings
+                  staleSince={
+                    stats.meta.leetcode?.stale
+                      ? formatTimestamp(stats.meta.leetcode.updatedAt)
+                      : null
+                  }
                   items={[
                     {
                       label: "Solved",
@@ -467,6 +615,11 @@ export default async function StatsPage() {
             >
               {stats.codechef ? (
                 <Readings
+                  staleSince={
+                    stats.meta.codechef?.stale
+                      ? formatTimestamp(stats.meta.codechef.updatedAt)
+                      : null
+                  }
                   items={[
                     {
                       label: "Rating",
@@ -509,6 +662,11 @@ export default async function StatsPage() {
             >
               {stats.codeforces ? (
                 <Readings
+                  staleSince={
+                    stats.meta.codeforces?.stale
+                      ? formatTimestamp(stats.meta.codeforces.updatedAt)
+                      : null
+                  }
                   items={[
                     {
                       label: "Rating",
@@ -551,6 +709,11 @@ export default async function StatsPage() {
             >
               {stats.code360 ? (
                 <Readings
+                  staleSince={
+                    stats.meta.code360?.stale
+                      ? formatTimestamp(stats.meta.code360.updatedAt)
+                      : null
+                  }
                   items={[
                     {
                       label: "Solved",
@@ -579,6 +742,11 @@ export default async function StatsPage() {
             >
               {stats.github ? (
                 <Readings
+                  staleSince={
+                    stats.meta.github?.stale
+                      ? formatTimestamp(stats.meta.github.updatedAt)
+                      : null
+                  }
                   items={[
                     {
                       label: "Contributions, 12mo",
@@ -607,12 +775,15 @@ export default async function StatsPage() {
 
         <Reveal delay={0.1}>
           <p className="mt-10 max-w-[62ch] text-sm text-muted">
-            Figures are cached and refreshed automatically every thirty
-            minutes, so nothing here is fetched while you wait. Codeforces,
-            LeetCode and Code360 are read from public APIs. CodeChef publishes
-            none, so its numbers come from the public profile page and are the
-            most likely to go quiet; when they do, that section says so rather
-            than showing a stale figure as if it were current.
+            A scheduled job reads every platform on its own every thirty
+            minutes and stores the result, and these pages render from that
+            store — so nothing here is fetched while you wait, and freshness
+            doesn&rsquo;t depend on anyone happening to visit. Codeforces,
+            LeetCode, Code360 and GitHub are read from public APIs. CodeChef
+            publishes none, so its numbers are scraped from the profile page
+            and are the most likely to go quiet. When a platform does go quiet
+            its last good reading is kept and labelled with the date it was
+            taken, rather than being dropped or passed off as current.
           </p>
         </Reveal>
       </Section>

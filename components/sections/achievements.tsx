@@ -3,7 +3,17 @@ import { Section, Lead } from "@/components/section";
 import { Reveal, Stagger, StaggerItem } from "@/components/motion";
 import { achievements } from "@/content/achievements";
 
-export function Achievements() {
+export interface LiveAchievement {
+  figure: string;
+  detail: string;
+}
+
+/**
+ * `live` carries current figures for the one entry that has them. It is
+ * optional so the section still renders correctly if every platform is
+ * down — it simply falls back to the written text.
+ */
+export function Achievements({ live }: { live?: LiveAchievement }) {
   return (
     <Section id="achievements" label="Recognition" meta="Contests and rankings">
       <Reveal>
@@ -12,7 +22,12 @@ export function Achievements() {
 
       <Stagger as="div" className="mt-12" stagger={0.08}>
         <dl>
-        {achievements.map((item) => (
+        {achievements.map((entry) => {
+          const item =
+            entry.id === "competitive" && live
+              ? { ...entry, figure: live.figure, detail: live.detail }
+              : entry;
+          return (
           <StaggerItem
             key={item.title}
             className="grid gap-x-gutter gap-y-1 border-t border-line py-7 md:grid-cols-[13rem_1fr]"
@@ -27,7 +42,8 @@ export function Achievements() {
               </p>
             </dd>
           </StaggerItem>
-        ))}
+          );
+        })}
         </dl>
       </Stagger>
 

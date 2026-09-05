@@ -5,7 +5,7 @@ import { Work } from "@/components/sections/work";
 import { Skills } from "@/components/sections/skills";
 import { Achievements } from "@/components/sections/achievements";
 import { Contact } from "@/components/sections/contact";
-import { getStats, STATS_REVALIDATE } from "@/lib/stats";
+import { getStats, liveAchievement, STATS_REVALIDATE } from "@/lib/stats";
 import { formatNumber, round } from "@/lib/utils";
 
 /**
@@ -19,6 +19,16 @@ import { formatNumber, round } from "@/lib/utils";
  * cannot be the imported constant. The type annotation is the guard: if
  * STATS_REVALIDATE ever changes, this line stops compiling.
  */
+/**
+ * Both routes are prerendered and must stay that way. The seed path in
+ * getStats() performs uncached fetches on a completely empty store, and
+ * without this Next would read those and downgrade the whole page to
+ * on-demand rendering — turning every visit into a server render. This
+ * pins the page to the static path; the seed is a one-time build-time
+ * cost, and after that the page is rebuilt only by the scheduled refresh.
+ */
+export const dynamic = "force-static";
+
 export const revalidate: typeof STATS_REVALIDATE = 1800;
 
 export default async function HomePage() {
@@ -46,6 +56,12 @@ export default async function HomePage() {
     });
   }
 
+  // The competitive-programming achievement quotes numbers that are also
+  // fetched live, so it is built from the same data rather than from the
+  // written copy. /stats derives it from the same helper, so the two
+  // pages cannot drift apart.
+  const liveAward = liveAchievement(stats);
+
   return (
     <>
       <Hero live={live} />
@@ -53,7 +69,7 @@ export default async function HomePage() {
       <Experience />
       <Work />
       <Skills />
-      <Achievements />
+      <Achievements live={liveAward} />
       <Contact />
     </>
   );

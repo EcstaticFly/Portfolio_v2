@@ -31,7 +31,7 @@ export function BadgeWall({ badges }: { badges: Badge[] }) {
               </span>
             </div>
 
-            <ul className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
+            <ul className="grid grid-cols-1 gap-3 min-[400px]:grid-cols-2 sm:grid-cols-3 lg:grid-cols-4">
               {group.map((badge, i) => (
                 <motion.li
                   key={`${platform}-${badge.name}-${i}`}
@@ -48,7 +48,7 @@ export function BadgeWall({ badges }: { badges: Badge[] }) {
                 >
                   <Hex tier={badge.tier} />
                   <span className="min-w-0">
-                    <span className="block text-sm leading-snug text-ink">
+                    <span className="block text-sm leading-snug break-words text-ink">
                       {badge.name}
                     </span>
                     <span className="mt-0.5 block text-2xs text-muted">

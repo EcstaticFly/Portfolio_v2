@@ -6,7 +6,7 @@ import { motion, useReducedMotion } from "framer-motion";
 import { Shell } from "@/components/section";
 import { AnimatedText, Stagger, StaggerItem } from "@/components/motion";
 import { HeroBackdrop } from "@/components/hero-backdrop";
-import { site } from "@/content/site";
+import { site, socials } from "@/content/site";
 
 const EASE = [0.22, 1, 0.36, 1] as const;
 
@@ -67,7 +67,7 @@ export function Hero({ live }: { live: HeroLiveStat[] }) {
 
             <AnimatedText
               as="p"
-              text="I build backends that hold up once the traffic actually arrives."
+              text="I build software that holds up once real users arrive."
               className="font-display mt-8 max-w-[24ch] text-xl leading-[1.18] font-light text-ink sm:text-2xl md:text-3xl"
               onMount
               delay={0.9}
@@ -78,8 +78,9 @@ export function Hero({ live }: { live: HeroLiveStat[] }) {
               <StaggerItem>
                 <p className="max-w-[54ch] text-sm text-muted">
                   Computer Science and Engineering at IIIT Ranchi, class of
-                  2027. Right now I write frontends for pre-release AI model
-                  evaluation at Outlier.ai. Before that I shipped the backend
+                  2027. I build platforms across the stack &mdash; currently
+                  writing React and Next.js interfaces for pre-release AI
+                  model evaluation at Outlier.ai, after shipping the system
                   that took a platform through 100,000 registrations in its
                   first two days.
                 </p>
@@ -143,62 +144,87 @@ export function Hero({ live }: { live: HeroLiveStat[] }) {
               reduced ? { duration: 0 } : { duration: 1, ease: EASE, delay: 0.5 }
             }
           >
-            <div className="group relative">
-              <div
-                aria-hidden="true"
-                className="absolute -inset-10 rounded-full opacity-80 blur-2xl"
-                style={{
-                  background:
-                    "radial-gradient(circle, var(--accent-wash) 0%, transparent 70%)",
-                }}
-              />
-
-              {/* orbiting dashed ring */}
-              <motion.svg
-                aria-hidden="true"
-                viewBox="0 0 100 100"
-                className="absolute -inset-5 h-[calc(100%+2.5rem)] w-[calc(100%+2.5rem)]"
-                animate={reduced ? undefined : { rotate: 360 }}
-                transition={
-                  reduced
-                    ? { duration: 0 }
-                    : { duration: 90, ease: "linear", repeat: Infinity }
-                }
-              >
-                <circle
-                  cx="50"
-                  cy="50"
-                  r="48"
-                  fill="none"
-                  stroke="var(--accent)"
-                  strokeWidth="0.4"
-                  strokeDasharray="1.5 4"
-                  opacity="0.55"
-                />
-                <circle cx="50" cy="2" r="1.6" fill="var(--accent)" />
-              </motion.svg>
-
-              <div className="relative h-44 w-44 overflow-hidden rounded-full border border-line sm:h-56 sm:w-56 lg:h-[20rem] lg:w-[20rem]">
-                <Image
-                  src="/profile_pic.jpeg"
-                  alt={`${site.name}, portrait`}
-                  fill
-                  sizes="(min-width: 1024px) 20rem, (min-width: 640px) 14rem, 11rem"
-                  className="scale-105 object-cover saturate-[0.82] transition-all duration-700 ease-out group-hover:scale-100 group-hover:saturate-100"
-                  priority
-                />
-                {/* a whisper of the page colour over the image, so it sits
-                    in the palette instead of on top of it */}
+            <div className="flex flex-col items-center gap-7">
+              <div className="group relative">
                 <div
                   aria-hidden="true"
-                  className="pointer-events-none absolute inset-0 opacity-40 mix-blend-soft-light transition-opacity duration-700 group-hover:opacity-0"
-                  style={{ backgroundColor: "var(--accent)" }}
+                  className="absolute -inset-10 rounded-full opacity-80 blur-2xl"
+                  style={{
+                    background:
+                      "radial-gradient(circle, var(--accent-wash) 0%, transparent 70%)",
+                  }}
                 />
-                <div
+
+                {/* orbiting dashed ring */}
+                <motion.svg
                   aria-hidden="true"
-                  className="pointer-events-none absolute inset-0 rounded-full border border-canvas/25"
-                />
+                  viewBox="0 0 100 100"
+                  className="absolute -inset-5 h-[calc(100%+2.5rem)] w-[calc(100%+2.5rem)]"
+                  animate={reduced ? undefined : { rotate: 360 }}
+                  transition={
+                    reduced
+                      ? { duration: 0 }
+                      : { duration: 90, ease: "linear", repeat: Infinity }
+                  }
+                >
+                  <circle
+                    cx="50"
+                    cy="50"
+                    r="48"
+                    fill="none"
+                    stroke="var(--accent)"
+                    strokeWidth="0.4"
+                    strokeDasharray="1.5 4"
+                    opacity="0.55"
+                  />
+                  <circle cx="50" cy="2" r="1.6" fill="var(--accent)" />
+                </motion.svg>
+
+                <div className="relative h-44 w-44 overflow-hidden rounded-full border border-line sm:h-56 sm:w-56 lg:h-[20rem] lg:w-[20rem]">
+                  <Image
+                    src="/profile_pic.jpeg"
+                    alt={`${site.name}, portrait`}
+                    fill
+                    sizes="(min-width: 1024px) 20rem, (min-width: 640px) 14rem, 11rem"
+                    className="scale-105 object-cover saturate-[0.82] transition-all duration-700 ease-out group-hover:scale-100 group-hover:saturate-100"
+                    priority
+                  />
+                  {/* a whisper of the page colour over the image, so it sits
+                      in the palette instead of on top of it */}
+                  <div
+                    aria-hidden="true"
+                    className="pointer-events-none absolute inset-0 opacity-40 mix-blend-soft-light transition-opacity duration-700 group-hover:opacity-0"
+                    style={{ backgroundColor: "var(--accent)" }}
+                  />
+                  <div
+                    aria-hidden="true"
+                    className="pointer-events-none absolute inset-0 rounded-full border border-canvas/25"
+                  />
+                </div>
               </div>
+
+              {/* The three places someone actually goes to check the work.
+                  Set as text on a hairline rather than as icon buttons:
+                  icons would be the only chrome of their kind on the page,
+                  and the type is already doing this job everywhere else.
+                  Email and the résumé are deliberately not repeated here —
+                  they sit beside the name a column away. */}
+              <nav
+                aria-label="Profiles"
+                className="flex w-full max-w-[17rem] items-center justify-between gap-4 border-t border-line pt-4"
+              >
+                {socials.map((social) => (
+                  <a
+                    key={social.label}
+                    href={social.href}
+                    target="_blank"
+                    rel="noreferrer noopener"
+                    className="link-rule text-xs text-muted"
+                  >
+                    {social.label}
+                  </a>
+                ))}
+              </nav>
             </div>
           </motion.div>
         </div>

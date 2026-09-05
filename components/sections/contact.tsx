@@ -35,6 +35,17 @@ export function Contact() {
 
       <Reveal delay={0.15}>
         <dl className="mt-12 border-t border-line">
+          <div className="grid gap-x-gutter gap-y-1 border-b border-line py-4 md:grid-cols-[13rem_1fr]">
+            <dt className="text-xs text-muted">Phone</dt>
+            <dd>
+              <a
+                href={`tel:${site.phone.replace(/\s+/g, "")}`}
+                className="link-rule text-sm break-all text-ink"
+              >
+                {site.phone}
+              </a>
+            </dd>
+          </div>
           {socials.map((social) => (
             <div
               key={social.label}

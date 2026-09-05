@@ -212,77 +212,6 @@
    Do not reintroduce a document-wide `transition` rule to smooth this.
    It is the single most expensive thing that was ever in this file. */
 
-/* ── Skills marquee ───────────────────────────────────────────
-   Two tracks drifting in opposite directions. The content is rendered
-   twice inside each track, so translating exactly -50% lands on an
-   identical frame and the loop is seamless with no JS ticking.
-
-   Transform-only, so it runs on the compositor and costs nothing per
-   frame on the main thread. */
-@keyframes marquee-left {
-  from {
-    transform: translate3d(0, 0, 0);
-  }
-  to {
-    transform: translate3d(-50%, 0, 0);
-  }
-}
-@keyframes marquee-right {
-  from {
-    transform: translate3d(-50%, 0, 0);
-  }
-  to {
-    transform: translate3d(0, 0, 0);
-  }
-}
-
-.marquee-track {
-  width: max-content;
-  will-change: transform;
-  animation-timing-function: linear;
-  animation-iteration-count: infinite;
-}
-.marquee-track[data-dir="left"] {
-  animation-name: marquee-left;
-}
-.marquee-track[data-dir="right"] {
-  animation-name: marquee-right;
-}
-
-/* Slow to a crawl rather than stopping dead, so hovering to read a card
-   does not feel like the page jammed. */
-.marquee-viewport:hover .marquee-track,
-.marquee-viewport:focus-within .marquee-track {
-  animation-duration: 260s;
-}
-
-/* Fade the ends so cards enter and leave instead of being cut off. */
-.marquee-viewport {
-  -webkit-mask-image: linear-gradient(
-    to right,
-    transparent,
-    #000 6rem,
-    #000 calc(100% - 6rem),
-    transparent
-  );
-  mask-image: linear-gradient(
-    to right,
-    transparent,
-    #000 6rem,
-    #000 calc(100% - 6rem),
-    transparent
-  );
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .marquee-track {
-    animation: none !important;
-    transform: none !important;
-  }
-  .marquee-viewport {
-    overflow-x: auto;
-  }
-}
 
 /* ── Entrance failsafe ─────────────────────────────────────────
    Animated elements are server-rendered hidden, so a client bundle that
@@ -306,6 +235,33 @@
 
 html[data-hydrated] [data-entrance] {
   animation: none;
+}
+
+/* ── Skills categories as tabs, on small screens only ─────────
+   Below md the category chips behave as tabs: pick one, see only that
+   group. Two columns of tiles at phone width leaves about 90px for a
+   label, which is how "Docker" ended up breaking across two lines.
+
+   Done with radio inputs and :has() rather than React state on purpose.
+   The section is a server component, so every brand icon exists only as
+   HTML; making it interactive would serialise all 39 of them into the
+   client payload a second time, which is most of what removing the
+   marquee just saved.
+
+   The two rules are written so that a browser without :has() drops both
+   and simply shows every group — long, but never blank. */
+@media (max-width: 767px) {
+  [data-skills]:has([data-tab]:checked) [data-group] {
+    display: none;
+  }
+  [data-skills]:has([data-tab="0"]:checked) [data-group="0"],
+  [data-skills]:has([data-tab="1"]:checked) [data-group="1"],
+  [data-skills]:has([data-tab="2"]:checked) [data-group="2"],
+  [data-skills]:has([data-tab="3"]:checked) [data-group="3"],
+  [data-skills]:has([data-tab="4"]:checked) [data-group="4"],
+  [data-skills]:has([data-tab="5"]:checked) [data-group="5"] {
+    display: block;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {

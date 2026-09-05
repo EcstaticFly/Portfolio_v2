@@ -1,5 +1,5 @@
 import {
-  STATS_REVALIDATE,
+  REQUEST_TIMEOUT_MS,
   type LeetCodeStats,
   type RatingPoint,
   type TopicCount,
@@ -120,7 +120,8 @@ async function getYear(
         query: CALENDAR_QUERY,
         variables: { username: handle, year },
       }),
-      next: { revalidate: STATS_REVALIDATE },
+      cache: "no-store",
+      signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
     });
     if (!res.ok) return [];
     const body = (await res.json()) as {
@@ -155,7 +156,8 @@ export async function getLeetCode(
         "User-Agent": "suyash-portfolio",
       },
       body: JSON.stringify({ query: QUERY, variables: { username: handle } }),
-      next: { revalidate: STATS_REVALIDATE },
+      cache: "no-store",
+      signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
     });
     if (!res.ok) throw new Error(`LeetCode: HTTP ${res.status}`);
 

@@ -1,5 +1,5 @@
 import {
-  STATS_REVALIDATE,
+  REQUEST_TIMEOUT_MS,
   type ActivityDay,
   type Badge,
   type Code360Stats,
@@ -29,7 +29,8 @@ async function getContributions(uuid: string): Promise<ActivityDay[]> {
           "User-Agent": "suyash-portfolio",
           Accept: "application/json",
         },
-        next: { revalidate: STATS_REVALIDATE },
+        cache: "no-store",
+      signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
       }
     );
     if (!res.ok) return [];
@@ -79,7 +80,8 @@ export async function getCode360(uuid: string): Promise<Code360Stats | null> {
           "User-Agent": "suyash-portfolio",
           Accept: "application/json",
         },
-        next: { revalidate: STATS_REVALIDATE },
+        cache: "no-store",
+      signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
       }
     );
     if (!res.ok) throw new Error(`Code360: HTTP ${res.status}`);

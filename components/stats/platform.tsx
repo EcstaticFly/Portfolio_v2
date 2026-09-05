@@ -70,23 +70,40 @@ export function Platform({
   );
 }
 
-/** A row of figures inside a platform block. */
+/**
+ * A row of figures inside a platform block.
+ *
+ * `staleSince` is set when the platform did not answer on the last
+ * refresh and these numbers are being carried forward. Saying so is the
+ * whole point of keeping them: an old reading is more useful than a
+ * blank, but only if it is not passed off as current.
+ */
 export function Readings({
   items,
+  staleSince,
 }: {
   items: { label: string; value: string }[];
+  staleSince?: string | null;
 }) {
   return (
-    <dl className="grid grid-cols-2 gap-x-8 gap-y-6 lg:grid-cols-4">
-      {items.map((item) => (
-        <div key={item.label} className="flex flex-col-reverse">
-          <dt className="mt-2 text-xs text-muted">{item.label}</dt>
-          <dd className="font-display text-xl leading-none font-light text-ink">
-            {item.value}
-          </dd>
-        </div>
-      ))}
-    </dl>
+    <div>
+      <dl className="grid grid-cols-2 gap-x-8 gap-y-6 lg:grid-cols-4">
+        {items.map((item) => (
+          <div key={item.label} className="flex flex-col-reverse">
+            <dt className="mt-2 text-xs text-muted">{item.label}</dt>
+            <dd className="font-display text-xl leading-none font-light text-ink">
+              {item.value}
+            </dd>
+          </div>
+        ))}
+      </dl>
+      {staleSince ? (
+        <p className="mt-6 max-w-[52ch] text-sm text-muted">
+          Didn&rsquo;t answer on the last refresh. These are the last good
+          figures, read {staleSince} IST.
+        </p>
+      ) : null}
+    </div>
   );
 }
 

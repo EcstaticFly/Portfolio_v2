@@ -119,14 +119,128 @@ rather than rendering a dead link. Currently outstanding:
 - `site.url` — set after the first deploy so `metadataBase` resolves
 - `experience[].certificateUrl` for Target Board and SecNode
 
+## How freshness actually works
+
+Nothing a visitor does causes a platform to be fetched. There is exactly
+one code path that talks to Codeforces, LeetCode, CodeChef, Code360 or
+GitHub, and it is the scheduled refresh in
+`app/api/revalidate/route.ts`.
+
+```
+every 30 min          refreshStats()
+                        ├─ fetch all five platforms in parallel
+                        ├─ mergeSnapshot(): whatever answered replaces its
+                        │   entry; whatever didn't keeps the one it had
+                        ├─ writeSnapshot()  → the KV store
+                        └─ revalidatePath('/'), revalidatePath('/stats')
+                             └─ pages re-render, reading the snapshot
+
+a visitor             static HTML from the CDN
+                        └─ no store read, no fetch, no wait
+```
+
+**The store is never on a visitor's request path.** That is the whole
+reason this design does not cost anything. Both pages are
+`dynamic = "force-static"` with a 30-minute `revalidate`, so what a
+browser receives is prerendered HTML. The snapshot is read while a page
+is being *regenerated*, in the background, roughly twice an hour — not
+once per visit. Adding persistence therefore made the site strictly more
+robust at zero latency cost.
+
+`force-static` is load-bearing, not decoration. `getStats()` has a seed
+path that fetches live when the store is completely empty, which only
+happens on a brand-new deployment. Those fetches are `no-store`, and
+without the `force-static` pin Next notices them and downgrades both
+routes to on-demand rendering — turning every visit into a server render.
+The build output is the check: `/` and `/stats` must be listed as `○
+(Static)` with a 30m revalidate.
+
+### The store
+
+`lib/stats/store.ts` picks a driver from the environment:
+
+| Driver     | When                                             | Persistent          |
+| ---------- | ------------------------------------------------ | ------------------- |
+| `upstash`  | `KV_REST_API_URL` + `KV_REST_API_TOKEN` are set  | yes                 |
+| `file`     | local development                                | yes, on that box    |
+| `memory`   | deployed with no KV configured                   | **no**              |
+
+Upstash is spoken to over its REST API with plain `fetch`, so there is no
+dependency, no connection pool and no cold-start handshake. Vercel KV is
+Upstash underneath and sets the same variable names, so either works.
+Snapshots are gzipped before storage (~22 KB down to ~5.6 KB), which
+keeps them far inside request-size limits.
+
+**Without KV, a deployment silently loses the carry-forward.** The
+memory driver is per-instance, so the cron's snapshot is not visible to
+the process that renders the page. `/api/revalidate` reports which driver
+is live in its `driver` field — check it after deploying.
+
+### Scheduling
+
+Vercel's **Hobby plan rejects any cron that fires more than once a day**
+at deploy time, so `*/30 * * * *` in `vercel.json` fails the build. The
+real cadence therefore lives in `.github/workflows/refresh-stats.yml`,
+which is free and unrestricted; `vercel.json` keeps a daily run as a
+backstop. The workflow needs two repository secrets, `SITE_URL` and
+`CRON_SECRET`.
+
+Set `CRON_SECRET` in the Vercel project too. It matters more than it used
+to: the route now performs writes and spends a rate-limit budget, so it
+should not be freely triggerable.
+
+### The refresh reports on itself
+
+Two things about `/api/revalidate` exist so that a broken setup cannot
+look like a working one.
+
+**It returns before the pages finish rebuilding.** Measured locally, the
+snapshot was stored in about five seconds while rebuilding both pages
+took a further ~110s — past the function's 60s ceiling. Blocking on that
+would have produced a timeout, a red workflow run and an alert email
+every thirty minutes, all while the data had in fact been saved
+correctly. The rebuild is therefore scheduled with `after()`, which runs
+it once the response has been sent. If it is cut short, the pages still
+regenerate on their own via the segment `revalidate`.
+
+**A misconfigured deployment returns HTTP 500.** A deployment that cannot
+see its KV credentials falls back to a per-instance variable the renderer
+never reads. Everything still looks right — pages build, numbers are
+current — but the carry-forward silently does nothing, and you would only
+find out on the day a platform went down. So `driver === "memory"` in
+production is reported as a failure; the workflow checks the status code,
+so it becomes a red run and an email.
+
+Only the misconfiguration is treated that way. A transient write failure
+against a healthy configuration stays a success with `stored: false` in
+the body — it self-heals on the next run, and paging someone every
+thirty minutes through a brief Upstash blip would train them to ignore
+the alert. The two cases are distinguishable:
+
+| Situation | `driver` | `stored` | HTTP |
+| --------- | -------- | -------- | ---- |
+| Healthy | `upstash` | `true` | 200 |
+| Credentials missing in production | `memory` | `true` | **500** |
+| Credentials fine, store unreachable | `upstash` | `false` | 200 |
+
+Because the pages no longer fetch anything themselves, the old
+constraint — "the cron interval must stay longer than the fetch TTL" — is
+gone. The schedule is now free to be whatever makes sense.
+
+Anything on the homepage that quotes a live figure is derived from the
+same `getStats()` call rather than written into `content/` — see the
+`id: "competitive"` achievement, which used to say 1672 and "500+" while
+/stats said 1675 and 632.
+
 ## `/stats`
 
-Live figures from four platforms, cached by Next and refreshed every 30
-minutes. No database, no cron, no backend — the Next cache *is* the
-storage layer.
+Live figures from five platforms, read by a scheduled job into a stored
+snapshot and rendered from there.
 
-Each fetch carries `next: { revalidate: 1800 }` and both routes declare
-the matching segment `revalidate`. Segment config has to be a literal
+Each platform fetch is `cache: "no-store"` — it only ever runs inside the
+refresh, whose entire job is to observe the platform's current state.
+Fallback is the snapshot's business, not the HTTP layer's. Both routes
+declare a segment `revalidate`. Segment config has to be a literal
 Next can read statically, so it can't be the imported constant; it's
 written as `export const revalidate: typeof STATS_REVALIDATE = 1800`, and
 the type annotation makes the file stop compiling if the shared constant
@@ -178,19 +292,104 @@ the REST rate limit. Contribution totals come from the public calendar
 page, because they are not exposed by the REST API and the GraphQL API
 that does expose them requires a token.
 
+### Codeforces needs care
+
+Its three calls are issued **sequentially with a 2.1s gap, not in
+parallel**, and each retries once. Codeforces documents a limit of one
+request per two seconds and returns intermittent 504s regardless — which
+is not theoretical: firing them together dropped the platform out of a
+regeneration during development, taking the rating chart, the contest
+totals and the live achievement line with it. The delay is affordable
+because it is only paid during background revalidation, never by a
+visitor.
+
+### Everything outbound is bounded
+
+Every `fetch` in the data layer carries an `AbortSignal.timeout`, and
+Codeforces additionally gets a whole-platform budget.
+
+This was learned the hard way. The failure handling was written and
+tested against platforms that *refuse* — a 404, a 500, a parse miss —
+and it handled all of those. What it had never seen was a platform that
+accepts the connection and then simply never answers. Codeforces did
+exactly that, and with three sequential endpoints, three attempts each
+and escalating backoff, one stall compounded to **156 seconds** and
+overran the function's 60-second ceiling. An upstream hiccup became a
+dead endpoint returning 504.
+
+The lesson generalises past that one call: a scheduled job has to bound
+its own work, and "handles failure" means nothing unless it includes
+"never returns". The audit that followed found three more unbounded
+calls, the worst being the snapshot read — which also runs while a page
+is being regenerated, so a stalled store would have hung a render rather
+than merely a refresh.
+
+| Bound | Value | Applies to |
+| ----- | ----- | ---------- |
+| `REQUEST_TIMEOUT_MS` | 8s | every platform request |
+| `CODEFORCES_BUDGET_MS` | 25s | all three Codeforces endpoints together |
+| `STORE_TIMEOUT_MS` | 5s | snapshot read and write |
+| `WARM_TIMEOUT_MS` | 25s | rebuilding one page after a refresh |
+
+Codeforces' budget is the one worth explaining. Its retry logic was
+written before the snapshot existed, when losing the platform meant
+losing the rating chart and the live achievement line outright, so almost
+any delay was worth it. That trade inverted once readings carry forward:
+giving up quickly now costs a stale label on real figures, while holding
+on costs the entire refresh. Worst case is a deterministic ~31s.
+
 ### When a platform goes down
 
 Every getter catches its own failures and resolves to `null`, so one
-platform can never reject the render or fail the build. The affected
-block says so in plain language and the rest of the page stays live —
-including the derived totals, which narrow to the judges that actually
-responded. CodeChef is the fragile one by a wide margin, since it is
-scraped; the parser treats every field as independently optional and
-reports a total parse miss as unavailable rather than as zero.
+platform can never reject the render or fail the build. What happens next
+is `mergeSnapshot()` in `lib/stats/snapshot.ts`, and it is the reason
+this site is more robust than reading the platforms directly.
 
-This path is tested by pointing `handles.codechef` at a nonexistent user
-and rebuilding. The build should still succeed and `/stats` should still
-render, with only the CodeChef block replaced.
+The rule is: **a platform that answers replaces its entry; a platform
+that doesn't keeps the one it had, labelled with the date it was taken.**
+The qualifications on that rule each exist because the naive version
+would eventually show a wrong number:
+
+- **Nothing regresses to unknown.** A field that comes back `null` where
+  we already had a value is a partial response, not news. Codeforces
+  answers three endpoints independently and any one can 504 alone, so a
+  reading can arrive with a live rating history but no rank at all.
+- **Monotonic counters never fall.** Nobody un-solves a problem, so a
+  drop in `solved`, `maxRating`, `totalContributions` or `stars` means
+  the source changed shape and the parser is now reading the wrong
+  element. Holding the previous value turns a silent wrong number into a
+  stalled one, which is the failure you can actually notice. Current
+  rating, current streak, follower count and CodeChef stars are
+  deliberately excluded — those can legitimately fall.
+- **Append-only arrays never shrink.** A shorter `history`, `topics` or
+  `badges` list is a partial read, not a correction.
+- **Activity days are unioned.** LeetCode only reports years it considers
+  active and CodeChef only ever showed a window, so replacing rather than
+  unioning would make "total active days" go *down* over time.
+- **Partial reads are rejected outright** where a proportion is involved.
+  Counting eighteen of twenty-nine repositories does not give a rougher
+  language breakdown, it gives a confidently wrong one, so the pass is
+  abandoned and the previous shares kept.
+- **Carrying forward expires.** Past `STALE_LIMIT_DAYS` (21) the reading
+  is dropped and the section says it is unavailable, so the page can
+  never quietly present numbers from a profile unreachable for a month.
+  The stored timestamp does not slide on each failed attempt, so repeated
+  outages still expire on schedule.
+
+Anything carried forward is labelled twice: once in the intro
+("Carried forward from the last good reading: CodeChef (1 Sept, 08:19)")
+and once in that platform's ledger row. An old reading is more useful
+than a blank, but only if it is not passed off as current.
+
+CodeChef is the fragile one by a wide margin, since it is scraped; the
+parser treats every field as independently optional and reports a total
+parse miss as unavailable rather than as zero.
+
+The merge rules are covered by `npm run test:stats`, which exercises
+`mergeSnapshot()`
+against fabricated snapshots: total outage, partial response, silent
+regression, a legitimate rating drop, the staleness horizon, repeated
+outages, a skipped language pass and a version-mismatched store.
 
 ## Motion
 
@@ -329,6 +528,72 @@ repeat offenders, all of which bit at least once here:
 
 Check with `document.documentElement.scrollWidth` against
 `clientWidth` at 320, 375, 414, 640, 768, 1024 and 1280.
+
+## Load budget
+
+Measured cold on a simulated mid-range phone (390x844, 4x CPU throttle,
+~1.6 Mbps): First Contentful Paint ~1.2-1.3s, load event ~2.1-2.8s,
+~576 KB transferred on the homepage.
+
+Two optimisations were tried, measured, and **reverted** because they
+were not worth their cost — recorded here so they are not re-attempted
+blind:
+
+1. **Fraunces as two static weights instead of the variable file.** Saves
+   about 48KB (118KB -> 70KB) but loses the `opsz` axis, so display type
+   is no longer optically sized. The type was the reason for choosing
+   this face; the bytes lost that argument.
+2. **Skill icons as an SVG `<symbol>`/`<use>` sprite.** The marquee
+   renders each row twice, so 27 distinct simple-icons paths appear ~86
+   times. The sprite cut the homepage HTML from 430KB to 347KB. Route
+   transitions measured identical either way (387/339ms with the sprite,
+   571/321ms without — the spread is noise), so it was reverted along
+   with the fonts.
+
+Together they were worth ~166 KB of transfer. If load size matters more
+than the `opsz` axis later, both are small, self-contained changes.
+
+**A caution about measuring this.** An early reading suggested the sprite
+took FCP from 4.4s to 1.3s. It did not — that 4.4s was a cold-server
+outlier, and later runs put both builds at ~1.2-1.3s. Take a median of
+several runs against a warm server before believing any number here.
+
+## The scheduled refresh costs visitors nothing
+
+`/api/revalidate` is a server route. It ships no client JavaScript —
+verified by grepping the built chunks for its unique strings — and does
+not change what a browser downloads. Pages stay statically prerendered
+HTML on the CDN; the refresh only decides *when* that HTML is rebuilt, on
+the server, out of band.
+
+This is also the answer to "won't a database call slow every visit?" It
+would, if the page read the store per request. It doesn't. The store is
+read during background regeneration, so the number of store reads per
+day is roughly the number of refreshes, not the number of visitors.
+
+### Request budget
+
+GitHub is the only platform where the budget needs thought, because
+unauthenticated REST is 60 requests an hour.
+
+| Pass                        | Requests | Frequency  |
+| --------------------------- | -------- | ---------- |
+| Profile + search totals     | 4        | every 30m  |
+| Contribution calendars      | ~4       | every 30m  |
+| Repo listing                | 1        | every 30m  |
+| Language byte counts        | ~29      | every 6h   |
+
+The calendars are `github.com` HTML rather than the API, so they don't
+count against it. That leaves ~10 API calls an hour, plus ~29 every six
+hours — comfortably inside 60. The language fan-out is the whole reason
+for the separate `LANGUAGE_REFRESH_SECONDS` clock: running it every
+refresh would be ~68 calls an hour and would exhaust the limit.
+
+Setting `GITHUB_TOKEN` raises the limit to 5,000/hour and lets the
+language pass run on every refresh. Nothing breaks without it — the
+shares just update every six hours instead. If the repo listing is ever
+rate limited, `stars` and `forks` come back `null` rather than `0`, so a
+throttled run can never render a false zero.
 
 ## Performance notes
 
