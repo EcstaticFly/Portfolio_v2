@@ -4,6 +4,7 @@ import { ThemeScript } from "@/components/theme-script";
 import { HydrationFlag } from "@/components/hydration-flag";
 import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
+import { ScrollTop } from "@/components/scroll-top";
 import { site } from "@/content/site";
 import "./globals.css";
 
@@ -58,6 +59,7 @@ export default function RootLayout({
         <SiteHeader />
         <main id="main">{children}</main>
         <SiteFooter />
+        <ScrollTop />
       </body>
     </html>
   );

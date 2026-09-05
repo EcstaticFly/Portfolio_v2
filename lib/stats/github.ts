@@ -318,9 +318,17 @@ export async function getGitHub(
       allDays.set(day.date, Math.max(allDays.get(day.date) ?? 0, day.count));
     }
   }
-  const allTime = summarise(
-    [...allDays.entries()].map(([date, count]) => ({ date, count }))
-  );
+  const everyDay = [...allDays.entries()].map(([date, count]) => ({
+    date,
+    count,
+  }));
+  const allTime = summarise(everyDay);
+  // Only days that actually saw a contribution are kept. The calendar
+  // hands back every date in the range, so storing it verbatim would be
+  // mostly zeroes.
+  const activity = everyDay
+    .filter((d) => d.count > 0)
+    .sort((a, b) => a.date.localeCompare(b.date));
   const trailing = summarise(recent ?? []);
 
   const [repoTotals, commits, pullRequests, issues] = await Promise.all([
@@ -365,6 +373,7 @@ export async function getGitHub(
     languages,
     languagesExact,
     languagesAt,
+    activity,
     createdYear,
   };
 }

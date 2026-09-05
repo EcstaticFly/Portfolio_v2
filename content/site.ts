@@ -10,6 +10,14 @@ export const site = {
   shortName: "Suyash Pandey",
   role: "Software developer",
   email: "suyashpandey607@gmail.com",
+  /**
+   * Published against the original brief, which said to keep this off
+   * the public site because bots scrape it. Added later on an explicit
+   * request. Removing it is a one-line change plus a redeploy — but a
+   * number that has already been harvested stays harvested, so the
+   * decision is worth being deliberate about.
+   */
+  phone: "+91 8081290747",
   location: "Ranchi, India",
   /** Canonical origin, used for metadata. Update after the first deploy. */
   url: "[INSERT_PRODUCTION_URL]",
@@ -25,14 +33,19 @@ export interface SocialLink {
 
 export const socials: SocialLink[] = [
   {
+    label: "LinkedIn",
+    href: "https://www.linkedin.com/in/suyash607/",
+    display: "linkedin.com/in/suyash607",
+  },
+  {
     label: "GitHub",
     href: "https://github.com/EcstaticFly",
     display: "github.com/EcstaticFly",
   },
   {
-    label: "LinkedIn",
-    href: "https://www.linkedin.com/in/suyash607/",
-    display: "linkedin.com/in/suyash607",
+    label: "LeetCode",
+    href: "https://leetcode.com/u/suyash607/",
+    display: "leetcode.com/u/suyash607",
   },
 ];
 

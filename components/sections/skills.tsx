@@ -1,6 +1,6 @@
 import * as simpleIcons from "simple-icons";
-import { Section, Lead, Shell } from "@/components/section";
-import { Reveal } from "@/components/motion";
+import { Section, Lead } from "@/components/section";
+import { Reveal, Stagger, StaggerItem } from "@/components/motion";
 import { skills, type Skill } from "@/content/skills";
 
 interface IconData {
@@ -23,122 +23,136 @@ function lookup(slug: string | null): IconData | null {
   return icon ?? null;
 }
 
-interface Entry {
-  skill: Skill;
-  group: string;
-}
-
-function SkillCard({ entry }: { entry: Entry }) {
-  const icon = lookup(entry.skill.icon);
+function SkillCard({ skill }: { skill: Skill }) {
+  const icon = lookup(skill.icon);
 
   return (
-    <div className="group flex shrink-0 items-center gap-3.5 rounded-xl border border-line bg-accent-wash px-5 py-3.5 transition-colors duration-300 hover:border-accent">
-      <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-line bg-canvas text-muted transition-colors duration-300 group-hover:border-accent group-hover:text-accent">
+    <div className="group flex h-full items-center gap-3 rounded-xl border border-line bg-accent-wash px-4 py-3 transition-colors duration-300 hover:border-accent">
+      <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-line bg-canvas text-muted transition-colors duration-300 group-hover:border-accent group-hover:text-accent">
         {icon ? (
           <svg
             viewBox="0 0 24 24"
             aria-hidden="true"
-            className="h-5 w-5"
+            className="h-[18px] w-[18px]"
             fill="currentColor"
           >
             <path d={icon.path} />
           </svg>
         ) : (
-          <span className="font-display text-sm leading-none font-normal">
-            {entry.skill.name.slice(0, 2)}
+          <span className="font-display text-xs leading-none font-normal">
+            {skill.name.slice(0, 2)}
           </span>
         )}
       </span>
 
-      <span>
-        <span className="block text-sm leading-snug whitespace-nowrap text-ink transition-colors duration-300 group-hover:text-accent">
-          {entry.skill.name}
-        </span>
-        <span className="mt-0.5 block text-2xs whitespace-nowrap text-muted">
-          {entry.group}
-        </span>
+      {/* No forced word breaking. Given enough width a name wraps at its
+          spaces; forcing it was what turned "Docker" into "Docke / r"
+          when the column was too narrow to begin with. */}
+      <span className="min-w-0 text-sm leading-snug text-ink transition-colors duration-300 group-hover:text-accent">
+        {skill.name}
       </span>
     </div>
   );
 }
 
 /**
- * One row of the marquee. The list is rendered twice: the animation
- * translates exactly -50%, so the second copy is mid-frame at the moment
- * it wraps and the seam is invisible. The duplicate is hidden from
- * assistive tech so the skills are announced once.
+ * Skills, grouped the way they are actually thought about — and on a
+ * phone, one group at a time.
+ *
+ * This replaced a pair of infinite marquees. Two things were wrong with
+ * those. The obvious one is that nothing scrolling past you can be
+ * scanned: someone checking whether you know Postgres had to wait for it
+ * to come around. The less obvious one is that a seamless loop has to
+ * render its contents twice — so forty skills became eighty cards, and
+ * their brand icons were the single heaviest thing on the homepage.
+ *
+ * The category chips are radio inputs, not React state. Every group is
+ * in the HTML either way; CSS decides which one shows below md. That
+ * keeps this a server component, which matters because the icons are
+ * inlined SVG paths — going client-side would ship all of them a second
+ * time in the flight payload.
+ *
+ * Reveal is per group rather than per tile. `Stagger` puts one observer
+ * on the container and drives its children through variants, so six
+ * groups cost six observers rather than forty — the same reasoning as
+ * the heatmap drawing its cells as five paths instead of hundreds of
+ * elements.
  */
-function MarqueeRow({
-  entries,
-  direction,
-  seconds,
-}: {
-  entries: Entry[];
-  direction: "left" | "right";
-  seconds: number;
-}) {
-  return (
-    <div className="marquee-viewport overflow-hidden">
-      <div
-        className="marquee-track flex gap-3"
-        data-dir={direction}
-        style={{ animationDuration: `${seconds}s` }}
-      >
-        {[0, 1].map((copy) => (
-          <div
-            key={copy}
-            className="flex shrink-0 gap-3"
-            aria-hidden={copy === 1 ? "true" : undefined}
-          >
-            {entries.map((entry) => (
-              <SkillCard
-                key={`${copy}-${entry.group}-${entry.skill.name}`}
-                entry={entry}
-              />
-            ))}
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-}
-
 export function Skills() {
-  const all: Entry[] = skills.flatMap((group) =>
-    group.items.map((skill) => ({ skill, group: group.label }))
-  );
-
-  // Split by alternating rather than in half, so both rows carry a mix
-  // of groups instead of one being all languages and the other all
-  // tooling.
-  const rowA = all.filter((_, i) => i % 2 === 0);
-  const rowB = all.filter((_, i) => i % 2 === 1);
-
+  const total = skills.reduce((n, group) => n + group.items.length, 0);
 
   return (
-    <Section
-      id="skills"
-      label="Skills"
-      meta={`${all.length} tools and topics`}
-      bleed={
-        <Reveal delay={0.05}>
-          {/* Edge to edge without `100vw`: the section already spans the
-              page, so the rows simply fill it. Using viewport units here
-              is what previously let a scrollbar's width leak out as
-              horizontal overflow on narrow screens. */}
-          <div className="mt-12 flex flex-col gap-3">
-            <MarqueeRow entries={rowA} direction="left" seconds={64} />
-            <MarqueeRow entries={rowB} direction="right" seconds={78} />
-          </div>
-          <Shell>
-            <p className="mt-6 text-xs text-muted">
-              Hover to slow the rows down.
-            </p>
-          </Shell>
-        </Reveal>
-      }
-    >
+    <Section id="skills" label="Skills" meta={`${total} tools and topics`}>
       <Lead>What I reach for, roughly in the order I reach for it.</Lead>
+
+      <div data-skills className="mt-12">
+        {/* Chips double as the tab strip on small screens and disappear
+            entirely on desktop, where every group is shown at once. */}
+        {/* Each radio physically fills its own chip rather than being
+            parked off to one side.
+
+            That is what stops the page jumping. A visually-hidden input
+            still takes focus when its label is clicked, and the browser
+            scrolls whatever just took focus into view — so with the
+            inputs collected at the start of the row, choosing a category
+            threw you back up to the chips. An input that covers the chip
+            you just tapped is already on screen, so there is nothing to
+            scroll to.
+
+            Styling hangs off `has-[:checked]` on the label rather than
+            `peer-checked`. `peer-*` compiles to the `~` sibling
+            combinator, which matches *every* later sibling: with six
+            inputs and six labels flat in one row, selecting the third
+            chip lit up the third, fourth, fifth and sixth at once. */}
+        <div className="flex flex-wrap gap-2 md:hidden">
+          {skills.map((group, i) => (
+            <label
+              key={group.label}
+              className="relative cursor-pointer rounded-full border border-line px-3.5 py-1.5 text-xs text-muted transition-colors has-[:checked]:border-accent has-[:checked]:bg-accent has-[:checked]:text-canvas has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-offset-2 has-[:focus-visible]:outline-accent"
+            >
+              <input
+                type="radio"
+                name="skill-group"
+                data-tab={i}
+                defaultChecked={i === 0}
+                className="absolute inset-0 cursor-pointer opacity-0"
+                aria-label={group.label}
+              />
+              {group.label}
+            </label>
+          ))}
+        </div>
+
+        <div className="mt-8 space-y-10 md:mt-0">
+          {skills.map((group, i) => (
+            <div key={group.label} data-group={i}>
+              <Reveal delay={Math.min(i * 0.04, 0.16)}>
+                {/* The chip already names the group on a phone, so the
+                    heading would only repeat it. */}
+                <div className="hidden items-baseline gap-4 md:flex">
+                  <h3 className="text-sm text-ink">{group.label}</h3>
+                  <span className="h-px flex-1 bg-line" aria-hidden="true" />
+                  <span className="text-2xs text-muted">
+                    {group.items.length}
+                  </span>
+                </div>
+
+                <Stagger
+                  as="ul"
+                  className="grid grid-cols-1 gap-3 sm:grid-cols-2 md:mt-5 md:grid-cols-3 lg:grid-cols-4"
+                  stagger={0.045}
+                >
+                  {group.items.map((skill) => (
+                    <StaggerItem as="li" key={skill.name}>
+                      <SkillCard skill={skill} />
+                    </StaggerItem>
+                  ))}
+                </Stagger>
+              </Reveal>
+            </div>
+          ))}
+        </div>
+      </div>
     </Section>
   );
 }

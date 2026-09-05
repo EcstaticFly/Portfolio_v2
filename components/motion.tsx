@@ -121,7 +121,7 @@ interface RevealProps {
   children: ReactNode;
   className?: string;
   delay?: number;
-  as?: "div" | "li" | "article" | "section";
+  as?: "div" | "ul" | "li" | "article" | "section";
 }
 
 /**

@@ -303,6 +303,41 @@ totals and the live achievement line with it. The delay is affordable
 because it is only paid during background revalidation, never by a
 visitor.
 
+### Everything outbound is bounded
+
+Every `fetch` in the data layer carries an `AbortSignal.timeout`, and
+Codeforces additionally gets a whole-platform budget.
+
+This was learned the hard way. The failure handling was written and
+tested against platforms that *refuse* — a 404, a 500, a parse miss —
+and it handled all of those. What it had never seen was a platform that
+accepts the connection and then simply never answers. Codeforces did
+exactly that, and with three sequential endpoints, three attempts each
+and escalating backoff, one stall compounded to **156 seconds** and
+overran the function's 60-second ceiling. An upstream hiccup became a
+dead endpoint returning 504.
+
+The lesson generalises past that one call: a scheduled job has to bound
+its own work, and "handles failure" means nothing unless it includes
+"never returns". The audit that followed found three more unbounded
+calls, the worst being the snapshot read — which also runs while a page
+is being regenerated, so a stalled store would have hung a render rather
+than merely a refresh.
+
+| Bound | Value | Applies to |
+| ----- | ----- | ---------- |
+| `REQUEST_TIMEOUT_MS` | 8s | every platform request |
+| `CODEFORCES_BUDGET_MS` | 25s | all three Codeforces endpoints together |
+| `STORE_TIMEOUT_MS` | 5s | snapshot read and write |
+| `WARM_TIMEOUT_MS` | 25s | rebuilding one page after a refresh |
+
+Codeforces' budget is the one worth explaining. Its retry logic was
+written before the snapshot existed, when losing the platform meant
+losing the rating chart and the live achievement line outright, so almost
+any delay was worth it. That trade inverted once readings carry forward:
+giving up quickly now costs a stale label on real figures, while holding
+on costs the entire refresh. Worst case is a deterministic ~31s.
+
 ### When a platform goes down
 
 Every getter catches its own failures and resolves to `null`, so one

@@ -49,13 +49,22 @@ export function listJoin(items: string[]): string {
  * to a fixed timezone — otherwise the server's string and the client's
  * string disagree and React reports a hydration mismatch.
  */
+/**
+ * A real instant, rendered in IST.
+ *
+ * Only genuine timestamps go through here — when a refresh ran, when a
+ * platform was last reachable. Plain date strings such as an activity
+ * day or a badge date must NOT use this: those are already bucketed into
+ * IST upstream and stored as bare YYYY-MM-DD, so re-interpreting them in
+ * a timezone would shift half of them to the previous day.
+ */
 export function formatTimestamp(iso: string): string {
   return new Intl.DateTimeFormat("en-GB", {
     day: "numeric",
     month: "short",
     hour: "2-digit",
     minute: "2-digit",
-    timeZone: "UTC",
+    timeZone: "Asia/Kolkata",
     hour12: false,
   }).format(new Date(iso));
 }

@@ -1,6 +1,10 @@
 import { revalidatePath } from "next/cache";
 import { NextResponse, after } from "next/server";
-import { refreshStats, STATS_REFRESH_SECONDS } from "@/lib/stats";
+import {
+  refreshStats,
+  STATS_REFRESH_SECONDS,
+  WARM_TIMEOUT_MS,
+} from "@/lib/stats";
 
 /**
  * The scheduled refresh. This is the only thing on the site that talks to
@@ -59,7 +63,10 @@ export async function GET(request: Request) {
     await Promise.all(
       PATHS.map(async (path) => {
         try {
-          await fetch(`${origin}${path}`, { cache: "no-store" });
+          await fetch(`${origin}${path}`, {
+            cache: "no-store",
+            signal: AbortSignal.timeout(WARM_TIMEOUT_MS),
+          });
         } catch {
           // Nothing to do: the page is already marked for regeneration.
         }

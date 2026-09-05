@@ -68,6 +68,24 @@ export const REQUEST_TIMEOUT_MS = 8_000;
  */
 export const CODEFORCES_BUDGET_MS = 25_000;
 
+/**
+ * Ceiling on a snapshot read or write.
+ *
+ * Shorter than a platform request because this is a single key lookup
+ * against a store that is either healthy or not. It matters more than it
+ * looks: the read also runs while a page is being regenerated, so an
+ * unbounded one would let a stalled store hang a render rather than
+ * merely a refresh.
+ */
+export const STORE_TIMEOUT_MS = 5_000;
+
+/**
+ * Ceiling on warming one page after a refresh. Generous, because this is
+ * a full server render rather than an API call, and it costs nothing to
+ * abandon: the page is already marked for regeneration either way.
+ */
+export const WARM_TIMEOUT_MS = 25_000;
+
 export const STALE_LIMIT_DAYS = 21;
 
 /** Snapshot format. Bumping this discards incompatible stored data. */
@@ -229,6 +247,13 @@ export interface GitHubStats {
   languagesExact: boolean;
   /** When the language pass last succeeded, so it can run on its own clock */
   languagesAt: string | null;
+  /**
+   * Days with at least one contribution. Zero-days are dropped before
+   * storage: GitHub's calendar returns every date in the range whether
+   * or not anything happened, which would be ~1,100 rows of nothing for
+   * a three-year window.
+   */
+  activity: ActivityDay[];
   /** The year the account was created, for the all-time calendar walk */
   createdYear: number | null;
 }

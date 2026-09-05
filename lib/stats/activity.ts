@@ -93,3 +93,20 @@ export function mergeActivity(
     today: localToday(),
   };
 }
+
+/** How far back the heatmap lets you browse. */
+export const HEATMAP_YEARS = 3;
+
+/**
+ * The earliest day the heatmap can show, given today.
+ *
+ * Floored to a half-year boundary so it lines up exactly with the
+ * periods the picker offers — shipping days that no period can display
+ * would be pure payload. The page slices on this and the component
+ * generates its options from it, so the two cannot drift apart.
+ */
+export function heatmapWindowStart(today: string): string {
+  const year = Number(today.slice(0, 4)) - HEATMAP_YEARS;
+  const month = Number(today.slice(5, 7)) > 6 ? "07" : "01";
+  return `${year}-${month}-01`;
+}

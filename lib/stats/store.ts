@@ -1,5 +1,5 @@
 import { gunzipSync, gzipSync } from "node:zlib";
-import type { StatsSnapshot } from "./types";
+import { STORE_TIMEOUT_MS, type StatsSnapshot } from "./types";
 
 /**
  * Where the last-known-good snapshot lives.
@@ -97,6 +97,7 @@ export async function readSnapshot(): Promise<StatsSnapshot | null> {
       const res = await fetch(`${kv.url}/get/${encodeURIComponent(KEY)}`, {
         headers: { Authorization: `Bearer ${kv.token}` },
         cache: "no-store",
+        signal: AbortSignal.timeout(STORE_TIMEOUT_MS),
       });
       if (!res.ok) return null;
       const body = (await res.json()) as { result: string | null };
@@ -134,6 +135,7 @@ export async function writeSnapshot(snapshot: StatsSnapshot): Promise<boolean> {
         },
         body: payload,
         cache: "no-store",
+        signal: AbortSignal.timeout(STORE_TIMEOUT_MS),
       });
       return res.ok;
     } catch {

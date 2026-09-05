@@ -100,7 +100,7 @@ export function Readings({
       {staleSince ? (
         <p className="mt-6 max-w-[52ch] text-sm text-muted">
           Didn&rsquo;t answer on the last refresh. These are the last good
-          figures, read {staleSince} UTC.
+          figures, read {staleSince} IST.
         </p>
       ) : null}
     </div>

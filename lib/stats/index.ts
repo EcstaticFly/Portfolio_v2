@@ -6,6 +6,7 @@ import { getCodeChef } from "./codechef";
 import { getCode360 } from "./code360";
 import { getGitHub, hasToken } from "./github";
 import { mergeActivity } from "./activity";
+export { heatmapWindowStart, HEATMAP_YEARS } from "./activity";
 import { readSnapshot, storeDriver, writeSnapshot } from "./store";
 import {
   emptySnapshot,

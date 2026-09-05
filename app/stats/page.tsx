@@ -15,6 +15,7 @@ import { Languages } from "@/components/stats/languages";
 import { achievements } from "@/content/achievements";
 import {
   getStats,
+  heatmapWindowStart,
   liveAchievement,
   staleSources,
   totalSolved,
@@ -205,6 +206,17 @@ export default async function StatsPage() {
   // current.
   const stale = staleSources(stats);
 
+  // Only the window the picker can actually reach is sent to the
+  // browser. Every figure above the grid is computed server-side from
+  // the full history, so nothing is lost by withholding the rest — and
+  // this is the one payload on the page that would otherwise grow with
+  // every year of activity.
+  const heatmapDays = stats.activity
+    ? stats.activity.days.filter(
+        (d) => d.date >= heatmapWindowStart(stats.activity!.today)
+      )
+    : [];
+
   const gh = stats.github;
   const githubFigures: GitHubFigure[] = gh
     ? ([
@@ -237,6 +249,12 @@ export default async function StatsPage() {
       ] as (GitHubFigure | null)[]).filter((f): f is GitHubFigure => f !== null)
     : [];
 
+
+  // GitHub keeps its own grid: its contributions are not problems
+  // solved, so folding them into the judge heatmap would overstate what
+  // "active days" means on this page.
+
+
   return (
     <>
       <section className="pt-32 pb-16 md:pt-40 md:pb-20">
@@ -263,7 +281,7 @@ export default async function StatsPage() {
             </StaggerItem>
             <StaggerItem className="mt-4">
               <p className="max-w-[58ch] text-sm text-muted">
-                Last updated {updated} UTC.{" "}
+                Last updated {updated} IST.{" "}
                 <Link href="/" className="link-inline">
                   Back to the portfolio
                 </Link>
@@ -397,9 +415,15 @@ export default async function StatsPage() {
 
           <Stagger className="mt-10 flex flex-wrap gap-x-12 gap-y-6" stagger={0.08}>
             {[
-              { label: "Active days", value: stats.activity.totalActiveDays },
+              {
+                label: "Total active days",
+                value: stats.activity.totalActiveDays,
+              },
               { label: "Current streak", value: stats.activity.currentStreak },
-              { label: "Longest streak", value: stats.activity.longestStreak },
+              {
+                label: "Longest streak",
+                value: stats.activity.longestStreak,
+              },
             ].map((r) => (
               <StaggerItem key={r.label}>
                 <div className="flex flex-col-reverse">
@@ -413,19 +437,16 @@ export default async function StatsPage() {
           </Stagger>
 
           <Reveal delay={0.08} className="mt-10 w-full min-w-0">
-            <Heatmap
-              days={stats.activity.days}
-              months={12}
-              today={stats.activity.today}
-            />
+            <Heatmap days={heatmapDays} today={stats.activity.today} />
           </Reveal>
 
           <Reveal delay={0.1}>
             <p className="mt-8 max-w-[62ch] text-sm text-muted">
-              Days are unioned rather than summed, so working on two judges
-              on the same date counts once. Only{" "}
-              {listJoin(stats.activity.sources)} publish per-day activity;
-              the other platforms are not represented here.
+              The three figures above are all-time totals and do not change
+              with the period shown below. Days are unioned rather than
+              summed, so working on two judges on the same date counts
+              once. Only {listJoin(stats.activity.sources)} publish per-day
+              activity; the other platforms are not represented here.
             </p>
           </Reveal>
         </Section>
@@ -538,7 +559,7 @@ export default async function StatsPage() {
         </div>
       </Section>
 
-      <Section id="platforms" label="By platform" meta={`Updated ${updated} UTC`}>
+      <Section id="platforms" label="By platform" meta={`Updated ${updated} IST`}>
         <Stagger stagger={0.08}>
           <StaggerItem>
             <Platform
