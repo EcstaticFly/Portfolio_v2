@@ -36,7 +36,11 @@ export function ThemeToggle() {
   const [{ theme, mounted }, setState] = useState<{
     theme: Theme;
     mounted: boolean;
-  }>({ theme: "dark", mounted: false });
+    // Matches the site default, so the server-rendered `aria-checked`
+    // and label describe the theme a first-time visitor actually gets.
+    // The visible thumb is held back until `mounted`, so a returning
+    // visitor on dark never sees this state paint.
+  }>({ theme: "light", mounted: false });
 
   useEffect(() => {
     // The resolved theme only exists on the client; there is no

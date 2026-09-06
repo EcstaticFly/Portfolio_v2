@@ -32,9 +32,11 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  // Dark is the site default, so it leads here regardless of the OS hint.
-  themeColor: "#1C1712",
-  colorScheme: "dark light",
+  // Light is the site default, so it leads here regardless of the OS
+  // hint. This value is the light `--bg` token from globals.css; the two
+  // have to stay in step or the browser chrome will not match the page.
+  themeColor: "#E4DED0",
+  colorScheme: "light dark",
 };
 
 export default function RootLayout({

@@ -130,11 +130,19 @@ export function Hero({ live }: { live: HeroLiveStat[] }) {
 
           {/* Portrait. Circular, and built into the backdrop rather than
               dropped on top of it: a slowly rotating dashed ring and a
-              travelling marker orbit the frame, an inner hairline sits
-              just inside the edge, and the image itself lifts from
-              slightly desaturated to full colour on hover. Aligned to
-              the top of the column so it reads with the name rather than
-              sinking below it. */}
+              travelling marker orbit the frame, and an inner hairline
+              sits just inside the edge. Aligned to the top of the column
+              so it reads with the name rather than sinking below it.
+
+              The photograph itself is left alone. It previously carried
+              two tints that pulled it toward the palette — a
+              `saturate-[0.82]` filter and an accent-coloured soft-light
+              wash — both of which lifted on hover. They read as the
+              image being dimmed rather than as a deliberate treatment,
+              so the picture is now shown at its natural colour and only
+              the scale still responds to hover. The accent glow behind
+              the frame stays: it sits *around* the portrait, not on it,
+              and is what ties the circle to the backdrop. */}
           <motion.div
             data-entrance=""
             className="order-1 flex justify-center lg:order-2 lg:justify-end lg:self-start lg:pt-4"
@@ -186,15 +194,11 @@ export function Hero({ live }: { live: HeroLiveStat[] }) {
                     alt={`${site.name}, portrait`}
                     fill
                     sizes="(min-width: 1024px) 20rem, (min-width: 640px) 14rem, 11rem"
-                    className="scale-105 object-cover saturate-[0.82] transition-all duration-700 ease-out group-hover:scale-100 group-hover:saturate-100"
+                    // `transition-transform` rather than `transition-all`:
+                    // scale is the only thing that moves now, and naming
+                    // it keeps the animation on the compositor.
+                    className="scale-105 object-cover transition-transform duration-700 ease-out group-hover:scale-100"
                     priority
-                  />
-                  {/* a whisper of the page colour over the image, so it sits
-                      in the palette instead of on top of it */}
-                  <div
-                    aria-hidden="true"
-                    className="pointer-events-none absolute inset-0 opacity-40 mix-blend-soft-light transition-opacity duration-700 group-hover:opacity-0"
-                    style={{ backgroundColor: "var(--accent)" }}
                   />
                   <div
                     aria-hidden="true"
