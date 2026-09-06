@@ -27,7 +27,7 @@ export function Hero({ live }: { live: HeroLiveStat[] }) {
   return (
     <section
       id="home"
-      className="relative flex min-h-[92svh] flex-col justify-center overflow-hidden pt-28 pb-20 md:min-h-dvh md:pt-32"
+      className="hero-frame relative flex flex-col justify-center overflow-hidden pt-28 pb-20 md:pt-32"
     >
       <HeroBackdrop />
 

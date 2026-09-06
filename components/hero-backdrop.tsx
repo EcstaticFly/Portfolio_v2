@@ -93,8 +93,12 @@ export function HeroBackdrop() {
         />
       </motion.div>
 
-      {/* mid: two smaller glows, offset so the field is not symmetrical */}
-      <motion.div style={{ x: midX, y: midY }} className="absolute -inset-[15%]">
+      {/* mid: two smaller glows, offset so the field is not symmetrical.
+          Desktop only — see the note on the near layer below. */}
+      <motion.div
+        style={{ x: midX, y: midY }}
+        className="absolute -inset-[15%] hidden lg:block"
+      >
         <div
           className="absolute top-[8%] left-[62%] h-[30rem] w-[30rem] rounded-full opacity-40"
           style={{
@@ -112,10 +116,27 @@ export function HeroBackdrop() {
       </motion.div>
 
       {/* near: thin rings, the only hard edges — they give the parallax
-          something crisp to read against */}
+          something crisp to read against.
+
+          The mid glows and these rings are both `lg` and up only, and
+          that is the same breakpoint at which the hero becomes two
+          columns. It is not a coincidence: every offset here is a
+          percentage tuned to put them in the empty band beside the
+          portrait in that layout. Collapse to one column and the same
+          percentages drop them straight through the content — the ring
+          edges read as stray hairs crossing the name, and the darker
+          `accent-mid` glow becomes a visible blob behind the copy
+          rather than atmosphere at the margin.
+
+          This also covers a phone in desktop mode, whose ~980px layout
+          width still sits below `lg`, which is where both artefacts
+          were reported. The far wash, the grain and the vignette carry
+          the hero on smaller screens, and dropping four painted
+          elements and two compositor layers makes it cheaper there
+          too. */}
       <motion.div
         style={{ x: nearX, y: nearY }}
-        className="absolute -inset-[15%]"
+        className="absolute -inset-[15%] hidden lg:block"
       >
         <div className="absolute top-[16%] left-[58%] h-[30rem] w-[30rem] rounded-full border border-line opacity-60" />
         <div className="absolute top-[30%] left-[68%] h-[16rem] w-[16rem] rounded-full border border-line opacity-40" />

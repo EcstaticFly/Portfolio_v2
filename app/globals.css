@@ -171,6 +171,45 @@
     color: var(--accent);
   }
 
+  /* The hero's vertical frame.
+
+     This lives here rather than in utility classes because it needs a
+     media query that is awkward to express as a stacked variant, and
+     because the reason for that query is worth writing down.
+
+     A phone with "Desktop site" enabled reports a layout viewport of
+     roughly 980px wide against the phone's *full* pixel height — often
+     2,000px or more. That is wide enough to clear every width
+     breakpoint, so the hero sized itself to a viewport more than twice
+     as tall as its own content and left most of a screen of dead space
+     above the portrait and below the copy.
+
+     Width alone cannot separate the two cases: a 390x844 phone and that
+     same phone in desktop mode have almost identical aspect ratios
+     (0.46 and 0.45). What is unique is the *combination* — a desktop
+     width together with an extreme portrait aspect. No real display is
+     shaped that way, so there the content decides the height and the
+     section padding does the rest.
+
+     3/5 is the threshold because it clears a portrait tablet (768x1024
+     is 0.75, which keeps its full-height hero) while catching desktop
+     mode on every phone shape. */
+  .hero-frame {
+    min-height: 92svh;
+  }
+
+  @media (min-width: 768px) {
+    .hero-frame {
+      min-height: 100dvh;
+    }
+  }
+
+  @media (min-width: 768px) and (max-aspect-ratio: 3/5) {
+    .hero-frame {
+      min-height: 0;
+    }
+  }
+
   /* Persistent underline for links inside running text, where a
      hover-only affordance would not be discoverable. */
   .link-inline {
