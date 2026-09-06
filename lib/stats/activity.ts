@@ -25,10 +25,28 @@ export function toLocalDate(unixSeconds: number): string {
 }
 
 /** Today's date in the reporting timezone, for streaks and the heatmap. */
+/**
+ * Today, in UTC.
+ *
+ * Deliberately UTC while `toLocalDate` above stays on IST, because the
+ * two answer different questions. `toLocalDate` buckets Codeforces
+ * submissions, and rebucketing that history to UTC would move three
+ * days off the calendar and drop the all-time total from 350 to 348.
+ * This one only marks where "now" falls, and every other platform
+ * already reports its days on a UTC boundary — LeetCode most visibly,
+ * since it hands back a calendar keyed by UTC timestamps.
+ *
+ * Keeping this on IST meant the heatmap pointed at a day that LeetCode
+ * did not think had started yet: at 04:00 IST the grid highlighted the
+ * 6th while a submission made at that moment was filed under the 5th.
+ *
+ * It cannot affect the totals. `totalActiveDays` is the length of the
+ * unioned day list, which is never filtered against this value; only the
+ * current-streak walk and the heatmap's last cell read it.
+ */
 export function localToday(now: number = Date.now()): string {
-  return new Date(now + TZ_OFFSET_MINUTES * 60_000).toISOString().slice(0, 10);
+  return new Date(now).toISOString().slice(0, 10);
 }
-
 const toUTC = (iso: string): number => Date.parse(`${iso}T00:00:00Z`);
 const fromUTC = (ms: number): string =>
   new Date(ms).toISOString().slice(0, 10);

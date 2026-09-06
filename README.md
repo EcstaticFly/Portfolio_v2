@@ -180,10 +180,35 @@ is live in its `driver` field — check it after deploying.
 
 Vercel's **Hobby plan rejects any cron that fires more than once a day**
 at deploy time, so `*/30 * * * *` in `vercel.json` fails the build. The
-real cadence therefore lives in `.github/workflows/refresh-stats.yml`,
-which is free and unrestricted; `vercel.json` keeps a daily run as a
-backstop. The workflow needs two repository secrets, `SITE_URL` and
-`CRON_SECRET`.
+half-hourly cadence therefore lives outside the project, and it took two
+attempts to find somewhere it actually runs.
+
+GitHub Actions was the obvious answer — free, unrestricted, already in
+the repo — and it does not work. Scheduled events were being *dropped*
+rather than delayed: no queued runs ever appeared for the missing ticks,
+and roughly 2 of an expected 14 fired in a seven-hour window. GitHub
+documents that `schedule` "can be delayed during periods of high load"
+and offers no guarantee, so this is behaviour, not misconfiguration.
+
+The real cadence is now a **Cloudflare Worker cron trigger**
+(`5,35 * * * *`), whose source is kept in `worker/`. It fires within the
+scheduled minute, and the free plan's 100k+ daily invocations against
+this worker's 48 make it effectively unmetered.
+
+The other two schedulers stay, each for one specific job:
+
+| | Schedule | Job |
+| --- | --- | --- |
+| Cloudflare Worker | every 30 min | the real cadence |
+| `.github/workflows/refresh-stats.yml` | daily | **alerting** — Cloudflare sends no failure email, this fails loudly on a non-200 |
+| `vercel.json` | daily | backstop if Cloudflare is removed |
+
+Overlapping runs are harmless: both merge onto the same stored snapshot
+and the merge is monotonic, so the later write wins and nothing
+regresses.
+
+The workflow needs two repository secrets, `SITE_URL` and `CRON_SECRET`;
+the Worker needs the same two as environment variables.
 
 Set `CRON_SECRET` in the Vercel project too. It matters more than it used
 to: the route now performs writes and spends a rate-limit budget, so it
@@ -336,7 +361,9 @@ written before the snapshot existed, when losing the platform meant
 losing the rating chart and the live achievement line outright, so almost
 any delay was worth it. That trade inverted once readings carry forward:
 giving up quickly now costs a stale label on real figures, while holding
-on costs the entire refresh. Worst case is a deterministic ~31s.
+on costs the entire refresh. Worst case is a deterministic ~33s: the
+budget is a scheduling deadline rather than a hard stop, so a request
+started just inside the 25s mark still gets its full 8s.
 
 ### When a platform goes down
 
