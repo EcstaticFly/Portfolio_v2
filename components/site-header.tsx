@@ -100,6 +100,55 @@ export function SiteHeader() {
 
   const href = (id: string) => (onHome ? `#${id}` : `/#${id}`);
 
+  /**
+   * Same-page section links are scrolled explicitly rather than left to
+   * the browser's fragment navigation.
+   *
+   * They have to be. On the home page, opening the mobile sheet and
+   * tapping a section set `location.hash` correctly and then never
+   * scrolled at all — every item, every width below `md`. Measured with
+   * a real pointer click and a 40ms scroll trace: the position stayed at
+   * 0 for the full two seconds, so the scroll was not being cancelled
+   * part-way, it never started.
+   *
+   * What was ruled out, each by experiment: the `body` scroll lock below
+   * (holding it clear every frame changed nothing), and scroll anchoring
+   * (`overflow-anchor: none` changed nothing). What did fix it, either
+   * one alone, was removing `scroll-behavior: smooth` or disabling the
+   * sheet's closing height animation — so the native smooth scroll and
+   * the exit animation are interacting. The desktop bar never showed it
+   * because nothing animates closed there, and `/stats` never showed it
+   * because `/#id` is a cross-page navigation that lands with the sheet
+   * already gone.
+   *
+   * Rather than trade away the animation or the smooth scrolling, the
+   * scroll is issued directly on the next frame, which is verified to
+   * work. `scrollIntoView` honours the sections' `scroll-mt-24`, so the
+   * landing offset is unchanged.
+   */
+  const goToSection = (
+    event: React.MouseEvent<HTMLAnchorElement>,
+    id: string
+  ) => {
+    setOpen(false);
+    // Off the home page the href is `/#id`, a real navigation. That path
+    // already works, so leave it to the browser.
+    if (!onHome) return;
+    const target = document.getElementById(id);
+    if (!target) return;
+
+    event.preventDefault();
+    // Keep the address bar and the back button behaving as the anchor
+    // would have.
+    history.pushState(null, "", `#${id}`);
+    requestAnimationFrame(() => {
+      target.scrollIntoView({
+        behavior: reduced ? "auto" : "smooth",
+        block: "start",
+      });
+    });
+  };
+
   return (
     <motion.header
       initial={false}
@@ -128,6 +177,7 @@ export function SiteHeader() {
               <a
                 key={s.id}
                 href={href(s.id)}
+                onClick={(e) => goToSection(e, s.id)}
                 className={cn(
                   "link-rule text-xs transition-colors duration-300",
                   onHome && active === s.id ? "text-ink" : "text-muted"
@@ -182,7 +232,7 @@ export function SiteHeader() {
                   <li key={s.id}>
                     <a
                       href={href(s.id)}
-                      onClick={() => setOpen(false)}
+                      onClick={(e) => goToSection(e, s.id)}
                       className="block border-b border-line py-4 text-sm text-ink"
                     >
                       {s.label}
