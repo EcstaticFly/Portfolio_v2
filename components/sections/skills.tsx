@@ -45,10 +45,19 @@ function SkillCard({ skill }: { skill: Skill }) {
         )}
       </span>
 
-      {/* No forced word breaking. Given enough width a name wraps at its
-          spaces; forcing it was what turned "Docker" into "Docke / r"
-          when the column was too narrow to begin with. */}
-      <span className="min-w-0 text-sm leading-snug text-ink transition-colors duration-300 group-hover:text-accent">
+      {/* `break-words` (overflow-wrap), never `break-all`. The two are
+          not interchangeable: `break-all` splits every word at the
+          margin, which is what once turned "Docker" into "Docke / r".
+          `overflow-wrap: break-word` only ever breaks a word that
+          cannot fit on a line *by itself*, so ordinary names still wrap
+          at their spaces and nothing changes at comfortable widths.
+
+          This is the safety net, not the fix. The real fix was moving
+          the grid's column steps off `md` — but a single unbreakable
+          name longer than its card would still escape at some width,
+          and silently, so it is worth making that structurally
+          impossible. */}
+      <span className="min-w-0 text-sm leading-snug break-words text-ink transition-colors duration-300 group-hover:text-accent">
         {skill.name}
       </span>
     </div>
@@ -139,7 +148,7 @@ export function Skills() {
 
                 <Stagger
                   as="ul"
-                  className="grid grid-cols-1 gap-3 sm:grid-cols-2 md:mt-5 md:grid-cols-3 lg:grid-cols-4"
+                  className="grid grid-cols-1 gap-3 sm:grid-cols-2 md:mt-5 lg:grid-cols-3 xl:grid-cols-4"
                   stagger={0.045}
                 >
                   {group.items.map((skill) => (

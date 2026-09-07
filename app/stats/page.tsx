@@ -304,7 +304,7 @@ export default async function StatsPage() {
 
       <Section id="totals" label="At a glance" meta="Across five platforms">
         <Stagger
-          className="grid grid-cols-2 gap-x-8 gap-y-12 md:grid-cols-4"
+          className="grid grid-cols-2 gap-x-8 gap-y-12 lg:grid-cols-4"
           stagger={0.09}
         >
           {solved > 0 ? (
@@ -496,7 +496,7 @@ export default async function StatsPage() {
         {gh ? (
           <>
             <Stagger
-              className="mt-10 grid grid-cols-2 gap-x-8 gap-y-12 md:grid-cols-3"
+              className="mt-10 grid grid-cols-2 gap-x-8 gap-y-12 lg:grid-cols-3"
               stagger={0.08}
             >
               {githubFigures.map((figure) => (

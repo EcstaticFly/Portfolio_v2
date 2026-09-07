@@ -87,7 +87,7 @@ export function Readings({
 }) {
   return (
     <div>
-      <dl className="grid grid-cols-2 gap-x-8 gap-y-6 lg:grid-cols-4">
+      <dl className="grid grid-cols-2 gap-x-8 gap-y-6 xl:grid-cols-4">
         {items.map((item) => (
           <div key={item.label} className="flex flex-col-reverse">
             <dt className="mt-2 text-xs text-muted">{item.label}</dt>

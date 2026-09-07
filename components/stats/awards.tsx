@@ -29,7 +29,11 @@ export function Awards({ awards }: { awards: Award[] }) {
         <motion.li
           key={award.title}
           data-entrance=""
-          className="group rounded-2xl border border-line bg-surface/70 p-6 transition-colors duration-300 hover:border-accent"
+          /* `min-w-0`: a grid item defaults to `min-width: auto`, so it
+             refuses to shrink below its own min-content and pushes past
+             the track. That put every card 3px outside the list at
+             320px. */
+          className="group min-w-0 rounded-2xl border border-line bg-surface/70 p-6 transition-colors duration-300 hover:border-accent"
           initial={reduced ? false : { opacity: 0, y: 18, filter: "blur(6px)" }}
           whileInView={{ opacity: 1, y: 0, filter: "blur(0px)" }}
           viewport={{ once: true, margin: "0px 0px -12% 0px" }}
@@ -39,12 +43,16 @@ export function Awards({ awards }: { awards: Award[] }) {
               : { duration: 0.55, ease: EASE, delay: i * 0.07 }
           }
         >
+          {/* `min-w-0` on the figure and `shrink-0` on the year: without
+              the first, a flex item refuses to shrink below its content
+              and pushes the year past the card edge; without the second,
+              the year is what gets crushed instead. */}
           <div className="flex items-baseline justify-between gap-4">
-            <p className="font-display text-2xl leading-none font-light text-accent">
+            <p className="font-display min-w-0 text-2xl leading-none font-light break-words text-accent">
               {award.figure}
             </p>
             {award.year ? (
-              <span className="text-2xs text-muted">{award.year}</span>
+              <span className="shrink-0 text-2xs text-muted">{award.year}</span>
             ) : null}
           </div>
 

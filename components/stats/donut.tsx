@@ -130,9 +130,14 @@ export function Donut({
         {bands.map((band) => (
           <div
             key={band.label}
-            className="flex items-center justify-between gap-6 border-b border-line pb-2 last:border-b-0"
+            className="flex items-center justify-between gap-3 border-b border-line pb-2 last:border-b-0 sm:gap-6"
           >
-            <dt className="flex items-center gap-2.5 text-sm text-muted">
+            {/* `min-w-0` lets the label give way first, `shrink-0` keeps
+                the number whole. Without the pair, the label refused to
+                shrink and pushed the figure out of the panel on narrow
+                phones. The gap also starts smaller and only opens up
+                once there is room for it. */}
+            <dt className="flex min-w-0 items-center gap-2.5 text-sm text-muted">
               <span
                 aria-hidden="true"
                 className="h-2.5 w-2.5 rounded-full"
@@ -140,7 +145,9 @@ export function Donut({
               />
               {band.label}
             </dt>
-            <dd className="text-base text-ink">{formatNumber(band.value)}</dd>
+            <dd className="shrink-0 text-base text-ink">
+              {formatNumber(band.value)}
+            </dd>
           </div>
         ))}
       </dl>

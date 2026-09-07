@@ -35,7 +35,11 @@ export interface RatingCard {
 export function ContestRatings({ cards }: { cards: RatingCard[] }) {
   return (
     <Stagger
-      className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3"
+      /* Drops back to one column at `md` on purpose. That is where the
+         Section grows its 11rem rail, taking 224px out of the content
+         column — so two cards at 768px are narrower than two cards at
+         760px, and the three-up figures inside them stop fitting. */
+      className="grid gap-4 sm:grid-cols-2 md:grid-cols-1 lg:grid-cols-2 xl:grid-cols-3"
       stagger={0.09}
     >
       {cards.map((card) => {
