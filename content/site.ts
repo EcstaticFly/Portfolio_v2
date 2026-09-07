@@ -65,6 +65,13 @@ export const handles = {
 export const education = {
   institution: "Indian Institute of Information Technology, Ranchi",
   degree: "B.Tech, Computer Science and Engineering",
-  detail: "CGPA 8.75/10",
+  /**
+   * Split out from the degree line so About can set it at display size
+   * rather than burying it in a run-on. A CGPA is a filter for a lot of
+   * graduate hiring, so it should be readable at a glance rather than
+   * something a reader has to find.
+   */
+  cgpa: "8.75",
+  cgpaScale: "/10",
   period: "2023–2027",
 } as const;

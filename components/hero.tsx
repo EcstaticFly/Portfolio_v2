@@ -78,11 +78,12 @@ export function Hero({ live }: { live: HeroLiveStat[] }) {
               <StaggerItem>
                 <p className="max-w-[54ch] text-sm text-muted">
                   Computer Science and Engineering at IIIT Ranchi, class of
-                  2027. I build platforms across the stack &mdash; currently
-                  writing React and Next.js interfaces for pre-release AI
-                  model evaluation at Outlier.ai, after shipping the system
-                  that took a platform through 100,000 registrations in its
-                  first two days.
+                  2027, CGPA 8.75. I build platforms across the stack
+                  &mdash; currently a contract frontend developer at
+                  Outlier.ai, after shipping the APIs that carried a platform
+                  through 100,000 registrations in its first two days.
+                  Looking for a software developer internship or graduate
+                  role.
                 </p>
               </StaggerItem>
 
@@ -158,8 +159,12 @@ export function Hero({ live }: { live: HeroLiveStat[] }) {
                   aria-hidden="true"
                   className="absolute -inset-10 rounded-full opacity-80 blur-2xl"
                   style={{
+                    // `--glow-wash`, not `--accent-wash`: this is light
+                    // behind the portrait, and in light mode the accent
+                    // is darker than the page, so the accent token drew
+                    // a shadow here instead of a halo.
                     background:
-                      "radial-gradient(circle, var(--accent-wash) 0%, transparent 70%)",
+                      "radial-gradient(circle, var(--glow-wash) 0%, transparent 70%)",
                   }}
                 />
 

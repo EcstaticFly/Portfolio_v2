@@ -6,10 +6,13 @@ import { site, socials } from "@/content/site";
  * A mailto rather than a form. A form here would need a backend the
  * brief rules out, and a form that silently goes nowhere is worse than
  * an address. The phone number is deliberately not published.
+ *
+ * `meta` is kept to a few words on purpose: it renders in the narrow
+ * rail column, where a longer phrase wraps to four or five lines.
  */
 export function Contact() {
   return (
-    <Section id="contact" label="Contact" meta="Open to internships">
+    <Section id="contact" label="Contact" meta="Open to SDE roles">
       <Reveal>
         <p className="font-display max-w-[20ch] text-2xl leading-[1.1] font-light text-ink sm:text-3xl md:text-4xl">
           Have something that needs building?
@@ -18,9 +21,10 @@ export function Contact() {
 
       <Reveal delay={0.05}>
         <p className="mt-8 max-w-[54ch] text-base text-ink/80">
-          I&rsquo;m open to internships and freelance work, and I answer email
-          quickly. If it involves traffic that has to be survived or a problem
-          with a hard constraint, I&rsquo;m especially interested.
+          I&rsquo;m looking for a software developer internship or a graduate
+          role, and I answer email quickly. If it involves traffic that has to
+          be survived or a problem with a hard constraint, I&rsquo;m
+          especially interested.
         </p>
       </Reveal>
 

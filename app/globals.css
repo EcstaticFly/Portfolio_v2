@@ -28,6 +28,35 @@
   --accent-mid: color-mix(in oklab, var(--accent) 60%, var(--bg));
   --accent-wash: color-mix(in oklab, var(--accent) 12%, var(--bg));
 
+  /* ── Hero atmosphere ──────────────────────────────────────────
+     Deliberately separate from the --accent-* family above, because
+     those describe a *colour* while these describe *light*, and light
+     has to be brighter than the surface it falls on.
+
+     The hero backdrop used to paint its glows straight from
+     --accent-wash / -soft / -mid. In dark mode the accent (#c79b6e) is
+     lighter than the background, so that worked: the gradients read as
+     warmth pooling on a dark field. In light mode the accent (#6b4a3a)
+     is much *darker* than the background, so the identical code painted
+     shadows — measured at -12, -24 and -48 luminance points against the
+     page, which is why the field showed a grey smudge and the cursor
+     light trailed a stain.
+
+     The two themes cannot use the same treatment even with the sign
+     corrected. The light background sits at 73% luminance, leaving 27
+     points of headroom to pure white, so the strongest glow light mode
+     can physically produce is about 1.34:1 against the page; dark mode
+     reaches 3.5:1. A soft bloom is simply not available here.
+
+     So the light values below are not the dark ones with the sign
+     flipped — they are a much gentler lift, sized to what this ground
+     can actually carry. Measured against the page: +9.6, +4.6 and +3.5
+     luminance points after each layer's opacity, where the old code sat
+     at -11.5, -10.3 and -14.8. */
+  --glow-wash: color-mix(in oklab, #fffdf5 45%, var(--bg));
+  --glow-soft: color-mix(in oklab, #fffdf5 50%, var(--bg));
+  --glow-deep: color-mix(in oklab, #fff9ea 55%, var(--bg));
+
   --ease: cubic-bezier(0.22, 1, 0.36, 1);
 
   color-scheme: light;
@@ -45,6 +74,13 @@
   --accent-soft: color-mix(in oklab, var(--accent) 30%, var(--bg));
   --accent-mid: color-mix(in oklab, var(--accent) 62%, var(--bg));
   --accent-wash: color-mix(in oklab, var(--accent) 16%, var(--bg));
+
+  /* Unchanged from what the backdrop always painted here — dark mode was
+     never the broken half, so these alias the existing values exactly
+     rather than restating them. */
+  --glow-wash: var(--accent-wash);
+  --glow-soft: var(--accent-soft);
+  --glow-deep: var(--accent-mid);
 
   color-scheme: dark;
 }

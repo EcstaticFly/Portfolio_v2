@@ -11,7 +11,7 @@ import { site } from "@/content/site";
 import "./globals.css";
 
 const description =
-  "Suyash Pandey is a software developer and competitive programmer studying computer science at IIIT Ranchi. He builds web applications end to end, from interface to infrastructure.";
+  "Suyash Pandey is a software developer and competitive programmer, B.Tech Computer Science at IIIT Ranchi (CGPA 8.75, class of 2027). He builds platforms end to end, from interface to infrastructure, and is open to software developer internships and graduate roles.";
 
 export const metadata: Metadata = {
   metadataBase: site.url.startsWith("http") ? new URL(site.url) : undefined,

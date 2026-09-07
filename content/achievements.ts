@@ -30,6 +30,13 @@ export const achievements: Achievement[] = [
     weight: 0.92,
   },
   {
+    figure: "Round 3",
+    title: "Flipkart Grid 8.0",
+    detail: "Advanced to Round 3.",
+    year: "2026",
+    weight: 0.85,
+  },
+  {
     figure: "Semifinalist",
     title: "Flipkart Grid 7.0",
     detail: "Reached the semifinal round.",

@@ -10,28 +10,38 @@ import {
 } from "framer-motion";
 
 /**
- * Atmosphere for the hero.
+ * Atmosphere for the hero: two soft washes on a parallax, a grain, and a
+ * vignette. Nothing else.
  *
- * Depth comes from parallax: layers translate at different fractions of
- * the pointer, so near ones outrun far ones and the eye reads
- * separation. A soft light follows the cursor on a faster spring.
+ * Depth comes from the parallax — the layers translate at different
+ * fractions of the pointer, so the near one outruns the far one and the
+ * eye reads separation.
  *
- * Two things here were rewritten for cost, and both are worth keeping
- * in mind before editing:
+ * Three things were deliberately removed, and are worth not putting
+ * back:
  *
- *   1. **No blur filters.** The glows were previously radial gradients
- *      with `blur-[120px]` on top. A radial gradient is already soft —
- *      the filter added nothing visually and a 736px element blurred by
- *      120px is an enormous convolution to rasterise every time the
- *      element repaints, which includes every theme change.
- *   2. **The cursor light moves by transform, not by repainting.** It
- *      used to animate the `background` gradient *string*, which
- *      repainted a viewport-sized element on every pointer move. It is
- *      now a fixed element with a static gradient, translated on the
- *      compositor.
+ *   1. **Blur filters.** The glows were once radial gradients with
+ *      `blur-[120px]` on top. A radial gradient is already soft — the
+ *      filter added nothing visually, and a 736px element blurred by
+ *      120px is an enormous convolution to rasterise on every repaint,
+ *      which includes every theme change.
+ *   2. **The two thin rings.** They were the only hard edges here, and
+ *      they never earned their place: invisible against the dark field,
+ *      and on the pale one they read as stray hairs drawn across the
+ *      composition rather than as structure. The rotating dashed ring
+ *      around the portrait in `hero.tsx` is the one piece of that
+ *      language worth keeping, because it belongs to something.
+ *   3. **The light that followed the cursor.** A 52rem element tracking
+ *      the pointer on a spring. In dark mode it was a warm pool; in
+ *      light mode the same gradient could only ever be a grey smudge
+ *      trailing the mouse, since the page sits at 73% luminance and
+ *      leaves nothing to brighten into.
  *
- * Everything animated here is `transform` only, and every colour is
- * mixed from the theme tokens so it re-themes for free.
+ * What is left animates on `transform` only, and takes every colour from
+ * the `--glow-*` tokens rather than `--accent-*`. That indirection
+ * matters: a glow has to be brighter than the ground it falls on, and
+ * the accent is lighter than the page in dark mode but much darker in
+ * light. See the note in globals.css.
  */
 export function HeroBackdrop() {
   const reduced = useReducedMotion();
@@ -42,26 +52,11 @@ export function HeroBackdrop() {
   const sx = useSpring(mx, { stiffness: 38, damping: 20, mass: 1 });
   const sy = useSpring(my, { stiffness: 38, damping: 20, mass: 1 });
 
-  // Raw pixel pointer for the light, which should feel attached rather
-  // than trailing as far as the depth layers do.
-  const lightX = useSpring(useMotionValue(-4000), {
-    stiffness: 140,
-    damping: 26,
-    mass: 0.5,
-  });
-  const lightY = useSpring(useMotionValue(-4000), {
-    stiffness: 140,
-    damping: 26,
-    mass: 0.5,
-  });
-
   /* Layer travel in px. Larger = nearer the viewer. */
   const farX = useTransform(sx, (v) => v * 14);
   const farY = useTransform(sy, (v) => v * 10);
   const midX = useTransform(sx, (v) => v * 38);
   const midY = useTransform(sy, (v) => v * 26);
-  const nearX = useTransform(sx, (v) => v * 72);
-  const nearY = useTransform(sy, (v) => v * 48);
 
   useEffect(() => {
     if (reduced) return;
@@ -70,12 +65,10 @@ export function HeroBackdrop() {
     const onMove = (e: PointerEvent) => {
       mx.set(e.clientX / window.innerWidth - 0.5);
       my.set(e.clientY / window.innerHeight - 0.5);
-      lightX.set(e.clientX);
-      lightY.set(e.clientY);
     };
     window.addEventListener("pointermove", onMove, { passive: true });
     return () => window.removeEventListener("pointermove", onMove);
-  }, [mx, my, lightX, lightY, reduced]);
+  }, [mx, my, reduced]);
 
   return (
     <div
@@ -88,13 +81,19 @@ export function HeroBackdrop() {
           className="absolute top-[18%] left-[52%] h-[46rem] w-[46rem] rounded-full opacity-90"
           style={{
             background:
-              "radial-gradient(circle, var(--accent-wash) 0%, transparent 62%)",
+              "radial-gradient(circle, var(--glow-wash) 0%, transparent 62%)",
           }}
         />
       </motion.div>
 
       {/* mid: two smaller glows, offset so the field is not symmetrical.
-          Desktop only — see the note on the near layer below. */}
+          `lg` and up only, which is the same breakpoint at which the
+          hero becomes two columns — not a coincidence, since every
+          offset here is a percentage tuned to sit in the empty band
+          beside the portrait in that layout. Collapse to one column and
+          the same percentages drop them straight through the copy. That
+          also covers a phone in desktop mode, whose ~980px layout width
+          still sits below `lg`. */}
       <motion.div
         style={{ x: midX, y: midY }}
         className="absolute -inset-[15%] hidden lg:block"
@@ -103,59 +102,17 @@ export function HeroBackdrop() {
           className="absolute top-[8%] left-[62%] h-[30rem] w-[30rem] rounded-full opacity-40"
           style={{
             background:
-              "radial-gradient(circle, var(--accent-soft) 0%, transparent 64%)",
+              "radial-gradient(circle, var(--glow-soft) 0%, transparent 64%)",
           }}
         />
         <div
           className="absolute top-[58%] left-[38%] h-[26rem] w-[26rem] rounded-full opacity-30"
           style={{
             background:
-              "radial-gradient(circle, var(--accent-mid) 0%, transparent 66%)",
+              "radial-gradient(circle, var(--glow-deep) 0%, transparent 66%)",
           }}
         />
       </motion.div>
-
-      {/* near: thin rings, the only hard edges — they give the parallax
-          something crisp to read against.
-
-          The mid glows and these rings are both `lg` and up only, and
-          that is the same breakpoint at which the hero becomes two
-          columns. It is not a coincidence: every offset here is a
-          percentage tuned to put them in the empty band beside the
-          portrait in that layout. Collapse to one column and the same
-          percentages drop them straight through the content — the ring
-          edges read as stray hairs crossing the name, and the darker
-          `accent-mid` glow becomes a visible blob behind the copy
-          rather than atmosphere at the margin.
-
-          This also covers a phone in desktop mode, whose ~980px layout
-          width still sits below `lg`, which is where both artefacts
-          were reported. The far wash, the grain and the vignette carry
-          the hero on smaller screens, and dropping four painted
-          elements and two compositor layers makes it cheaper there
-          too. */}
-      <motion.div
-        style={{ x: nearX, y: nearY }}
-        className="absolute -inset-[15%] hidden lg:block"
-      >
-        <div className="absolute top-[16%] left-[58%] h-[30rem] w-[30rem] rounded-full border border-line opacity-60" />
-        <div className="absolute top-[30%] left-[68%] h-[16rem] w-[16rem] rounded-full border border-line opacity-40" />
-      </motion.div>
-
-      {/* the interactive part: painted once, then only translated */}
-      {!reduced ? (
-        <motion.div
-          className="absolute top-0 left-0 h-[52rem] w-[52rem] rounded-full opacity-70"
-          style={{
-            x: lightX,
-            y: lightY,
-            marginLeft: "-26rem",
-            marginTop: "-26rem",
-            background:
-              "radial-gradient(circle, var(--accent-wash) 0%, transparent 60%)",
-          }}
-        />
-      ) : null}
 
       {/* fine grain, which is what stops the gradients reading as flat
           CSS blobs. Inlined so it costs no request, and composited

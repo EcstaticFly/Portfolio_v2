@@ -36,19 +36,34 @@ export function About() {
 
           <div className="space-y-5 text-base text-ink/80">
             <p>
-              Right now I&rsquo;m freelancing with Outlier.ai, writing
-              Next.js and React frontends used to evaluate pre-release AI
-              models, and annotating speech data for platforms including
-              ElevenLabs and Omni TTS. Reading model output critically all day
-              turns out to be good practice for reading your own code the same
-              way.
+              Right now I&rsquo;m on contract with Outlier.ai as a frontend
+              developer and AI data annotator &mdash; building Next.js and
+              React interfaces used to evaluate pre-release AI models, and
+              annotating speech data for platforms including ElevenLabs and
+              Omni TTS. Reading model output critically all day turns out to
+              be good practice for reading your own code the same way.
+            </p>
+            <p>
+              The rest of my time goes into staying sharp: data structures and
+              algorithms daily, competitive programming on the weekends, and
+              building projects end to end. I&rsquo;m looking for a software
+              developer internship or a graduate role where that gets used.
             </p>
 
             <dl className="border-t border-line pt-5 text-sm">
               <dt className="text-xs text-muted">Studying</dt>
               <dd className="mt-1 text-ink">{education.institution}</dd>
-              <dd className="mt-1 text-muted">
-                {education.degree}, {education.detail}
+              <dd className="mt-1 text-muted">{education.degree}</dd>
+              {/* Set at display size rather than trailing the degree line.
+                  A CGPA is an early filter in graduate hiring, so it is
+                  worth being legible at a glance. */}
+              <dd className="mt-4 flex items-baseline gap-2.5">
+                <span className="font-display text-3xl leading-none font-light text-accent">
+                  {education.cgpa}
+                </span>
+                <span className="text-xs text-muted">
+                  {education.cgpaScale} CGPA &middot; {education.period}
+                </span>
               </dd>
             </dl>
           </div>

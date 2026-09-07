@@ -18,7 +18,7 @@ export interface Role {
 export const experience: Role[] = [
   {
     company: "Outlier.ai",
-    title: "Freelance Frontend Developer, AI Data Annotator",
+    title: "Contract Frontend Developer, AI Data Annotator",
     location: "Remote",
     period: "March 2026 — Present",
     year: "2026",
@@ -26,6 +26,7 @@ export const experience: Role[] = [
     points: [
       "Built fast, lightweight Next.js/TypeScript and React.js frontend pages to support evaluation of pre-release AI models.",
       "Annotated data for AI platforms including ElevenLabs and Omni TTS to improve model output quality; earned $4,000+ on contract work.",
+      "Alongside the contract, working daily on data structures, algorithms and competitive programming, and building full-stack projects end to end.",
     ],
   },
   {
