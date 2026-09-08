@@ -36,7 +36,7 @@ export function About() {
 
           <div className="space-y-5 text-base text-ink/80">
             <p>
-              Most recently I was on contract with Outlier.ai as a frontend
+              Most recently I was freelancing with Outlier.ai as a frontend
               developer and AI data annotator &mdash; building Next.js and
               React interfaces used to evaluate pre-release AI models, and
               annotating speech data for platforms including ElevenLabs and

@@ -79,7 +79,7 @@ export function Hero({ live }: { live: HeroLiveStat[] }) {
                 <p className="max-w-[54ch] text-sm text-muted">
                   Computer Science and Engineering at IIIT Ranchi, class of
                   2027, CGPA 8.75. I build platforms across the stack
-                  &mdash; most recently a contract frontend developer at
+                  &mdash; most recently a freelance frontend developer at
                   Outlier.ai, after shipping the APIs that carried a platform
                   through 100,000 registrations in its first two days.
                   Looking for a software developer internship or graduate
