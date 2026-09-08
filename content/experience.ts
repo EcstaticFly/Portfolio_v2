@@ -25,7 +25,6 @@ export const experience: Role[] = [
     points: [
       "Built fast, lightweight Next.js/TypeScript and React.js frontend pages to support evaluation of pre-release AI models.",
       "Annotated data for AI platforms including ElevenLabs and Omni TTS to improve model output quality; earned $4,000+ on freelance work.",
-      "Alongside the freelance work, worked daily on data structures, algorithms and competitive programming, and built full-stack projects end to end.",
     ],
   },
   {
