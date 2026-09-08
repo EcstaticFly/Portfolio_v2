@@ -21,7 +21,27 @@ const HISTORY_START = "2018-01-01";
  */
 async function getContributions(uuid: string): Promise<ActivityDay[]> {
   try {
-    const end = new Date().toISOString().slice(0, 10);
+    /**
+     * `end_date` is **exclusive**, which is not what the parameter name
+     * suggests and is not documented anywhere. Passing today's date
+     * therefore returned everything up to yesterday, so Code360's
+     * contribution to the heatmap was permanently a day behind — and on
+     * a day when Code360 was the only judge worked on, the heatmap read
+     * zero. Verified directly against the endpoint:
+     *
+     *   end_date=2026-09-08 -> ["2026-09-07"]
+     *   end_date=2026-09-09 -> ["2026-09-07", "2026-09-08"]
+     *
+     * Two days rather than one. One would fix the exclusive bound, but
+     * Code360 is an Indian platform and appears to bucket by IST, which
+     * runs up to a day *ahead* of UTC between 18:30 and midnight UTC —
+     * so a single day of slack would still miss late-evening work. A
+     * date past the end of the data costs nothing: the endpoint returns
+     * the same map for any later bound.
+     */
+    const end = new Date(Date.now() + 2 * 86_400_000)
+      .toISOString()
+      .slice(0, 10);
     const res = await fetch(
       `${BASE}/profile/contributions?uuid=${encodeURIComponent(uuid)}&start_date=${HISTORY_START}&end_date=${end}`,
       {

@@ -234,13 +234,17 @@
     min-height: 92svh;
   }
 
-  @media (min-width: 768px) {
+  /* `48rem`, matching Tailwind's `md`, rather than `768px`. The hero's
+     padding switches at `md:pt-32`, and a media query written in `px`
+     only lines up with that while the browser's default font size is
+     16px — see the longer note on the skills tabs below. */
+  @media (min-width: 48rem) {
     .hero-frame {
       min-height: 100dvh;
     }
   }
 
-  @media (min-width: 768px) and (max-aspect-ratio: 3/5) {
+  @media (min-width: 48rem) and (max-aspect-ratio: 3/5) {
     .hero-frame {
       min-height: 0;
     }
@@ -324,8 +328,22 @@ html[data-hydrated] [data-entrance] {
    marquee just saved.
 
    The two rules are written so that a browser without :has() drops both
-   and simply shows every group — long, but never blank. */
-@media (max-width: 767px) {
+   and simply shows every group — long, but never blank.
+
+   The breakpoint must be `48rem`, not `768px`, and the two are not
+   interchangeable. The chips are hidden by Tailwind's `md:hidden`, which
+   compiles to `(min-width: 48rem)`. `rem` in a media query resolves
+   against the *browser's default font size* — a user setting, not the
+   page's — so at the default 16px the two agree, and at any other
+   setting they drift apart. With a 20px default, `48rem` is 960px: the
+   chips stay on screen up to 960px while filtering stopped at 767px,
+   leaving a 193px-wide band where every group is visible and the chips
+   are inert. That is exactly how the same window width behaved
+   differently in three Chromium browsers.
+
+   `(width < 48rem)` is the exact complement of `(min-width: 48rem)`, so
+   there is no gap at any font size or at fractional widths. */
+@media (width < 48rem) {
   [data-skills]:has([data-tab]:checked) [data-group] {
     display: none;
   }
