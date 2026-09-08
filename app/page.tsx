@@ -5,7 +5,12 @@ import { Work } from "@/components/sections/work";
 import { Skills } from "@/components/sections/skills";
 import { Achievements } from "@/components/sections/achievements";
 import { Contact } from "@/components/sections/contact";
-import { getStats, liveAchievement, STATS_REVALIDATE } from "@/lib/stats";
+import {
+  getStats,
+  liveAchievement,
+  totalSolved,
+  STATS_REVALIDATE,
+} from "@/lib/stats";
 import { formatNumber, round } from "@/lib/utils";
 
 /**
@@ -34,25 +39,38 @@ export const revalidate: typeof STATS_REVALIDATE = 1800;
 export default async function HomePage() {
   const stats = await getStats();
 
-  // Only figures that actually came back are shown. A platform that is
-  // down simply drops out of the hero rather than rendering a dash.
+  /**
+   * Only figures that actually came back are shown. A platform that is
+   * down simply drops out of the hero rather than rendering a dash.
+   *
+   * These are the aggregate and the two peaks rather than one platform's
+   * current rating apiece. Two reasons. A total is legible to a reader
+   * who does not follow competitive programming, where "1,304
+   * Codeforces" is not, and peak ratings are how these results are
+   * conventionally stated. The second reason is structural: peaks are
+   * covered by the monotonic guard in the snapshot merge, so a broken
+   * scrape freezes them at their last good value. Current ratings are
+   * deliberately outside that guard, because they can genuinely fall.
+   *
+   * Nothing here costs an extra request. Every field is already in the
+   * snapshot that the scheduled refresh stores, so this is the same one
+   * read the page was already doing.
+   */
   const live: HeroLiveStat[] = [];
-  if (stats.codeforces?.rating) {
+  const solved = totalSolved(stats);
+  if (solved > 0) {
+    live.push({ label: "Problems solved", value: formatNumber(solved) });
+  }
+  if (stats.leetcode?.maxContestRating) {
     live.push({
-      label: "Codeforces",
-      value: formatNumber(stats.codeforces.rating),
+      label: "LeetCode peak",
+      value: formatNumber(round(stats.leetcode.maxContestRating)),
     });
   }
-  if (stats.leetcode?.solved) {
+  if (stats.codechef?.maxRating) {
     live.push({
-      label: "LeetCode solved",
-      value: formatNumber(stats.leetcode.solved),
-    });
-  }
-  if (stats.codechef?.rating) {
-    live.push({
-      label: "CodeChef",
-      value: formatNumber(round(stats.codechef.rating)),
+      label: "CodeChef peak",
+      value: formatNumber(round(stats.codechef.maxRating)),
     });
   }
 

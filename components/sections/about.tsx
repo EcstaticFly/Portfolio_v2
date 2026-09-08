@@ -36,18 +36,19 @@ export function About() {
 
           <div className="space-y-5 text-base text-ink/80">
             <p>
-              Right now I&rsquo;m on contract with Outlier.ai as a frontend
+              Most recently I was on contract with Outlier.ai as a frontend
               developer and AI data annotator &mdash; building Next.js and
               React interfaces used to evaluate pre-release AI models, and
               annotating speech data for platforms including ElevenLabs and
-              Omni TTS. Reading model output critically all day turns out to
+              Omni TTS. Reading model output critically all day turned out to
               be good practice for reading your own code the same way.
             </p>
             <p>
-              The rest of my time goes into staying sharp: data structures and
-              algorithms daily, competitive programming on the weekends, and
-              building projects end to end. I&rsquo;m looking for a software
-              developer internship or a graduate role where that gets used.
+              Since then my time has gone into staying sharp: data structures
+              and algorithms daily, competitive programming on the weekends,
+              and building projects end to end. I&rsquo;m looking for a
+              software developer internship or a graduate role where that gets
+              used.
             </p>
 
             <dl className="border-t border-line pt-5 text-sm">
