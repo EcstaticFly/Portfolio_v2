@@ -21,6 +21,15 @@ export const metadata: Metadata = {
   },
   description,
   authors: [{ name: site.name }],
+  creator: site.name,
+  /**
+   * Canonical on every page. Resolved against `metadataBase`, so the
+   * homepage declares itself as the one true copy of `/` and /stats
+   * overrides this with its own path. Without it, `?utm=` links from
+   * LinkedIn and the `.vercel.app` preview URLs can each be indexed as
+   * separate pages competing with the real one.
+   */
+  alternates: { canonical: "/" },
   openGraph: {
     title: `${site.name} — ${site.role}`,
     description,
@@ -29,6 +38,12 @@ export const metadata: Metadata = {
   },
   twitter: { card: "summary_large_image", title: site.name, description },
   robots: { index: true, follow: true },
+  /**
+   * Google Search Console ownership proof. Not a secret — it is meant
+   * to be public — and it only proves control of this origin, so it
+   * can stay in the repo. Emitted as a <meta> tag; nothing runs.
+   */
+  verification: { google: "rM1iztqUVKzzHMxfTSGOoqdiKXDHCST5ox0cM_Sjapw" },
 };
 
 export const viewport: Viewport = {

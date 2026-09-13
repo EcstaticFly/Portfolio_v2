@@ -46,6 +46,7 @@ export const metadata: Metadata = {
   title: "Coding record",
   description:
     "Live competitive-programming figures for Suyash Pandey, pulled directly from Codeforces, LeetCode, CodeChef, Code360 and GitHub.",
+  alternates: { canonical: "/stats" },
 };
 
 /** One counted figure in the GitHub section. */

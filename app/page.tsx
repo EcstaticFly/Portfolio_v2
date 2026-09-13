@@ -5,6 +5,7 @@ import { Work } from "@/components/sections/work";
 import { Skills } from "@/components/sections/skills";
 import { Achievements } from "@/components/sections/achievements";
 import { Contact } from "@/components/sections/contact";
+import { PersonSchema } from "@/components/person-schema";
 import {
   getStats,
   liveAchievement,
@@ -82,6 +83,7 @@ export default async function HomePage() {
 
   return (
     <>
+      <PersonSchema />
       <Hero live={live} />
       <About />
       <Experience />
