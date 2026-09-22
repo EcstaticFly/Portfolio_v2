@@ -47,14 +47,39 @@ export function Achievements({ live }: { live?: LiveAchievement }) {
         </dl>
       </Stagger>
 
+      {/* This was the same sentence as a muted paragraph with the link
+          buried mid-clause. The words were already doing the handoff —
+          "these are point-in-time results, the live record is current" —
+          so the only thing missing was for it to look like somewhere to
+          go. Promoted to the card treatment the Experience tiles use;
+          the wrapping Reveal is the one that was already here, so this
+          adds no scroll observer. */}
       <Reveal delay={0.1}>
-        <p className="mt-8 text-sm text-muted">
-          These are point-in-time results.{" "}
-          <Link href="/stats" className="link-rule text-ink">
-            The live record
-          </Link>{" "}
-          pulls current ratings and solve counts straight from each platform.
-        </p>
+        <Link
+          href="/stats"
+          className="group mt-10 block rounded-2xl border border-line bg-surface/70 p-6 transition-all duration-300 hover:-translate-y-0.5 hover:border-accent hover:bg-surface sm:p-7"
+        >
+          <p className="text-xs text-muted">The live record</p>
+          {/* Echoes the <h1> on /stats so the destination is recognisable
+              once you arrive. */}
+          <p className="font-display mt-2 text-2xl leading-tight font-light text-ink transition-colors duration-300 group-hover:text-accent sm:text-3xl">
+            Everything, counted
+          </p>
+          <p className="mt-3 max-w-[54ch] text-sm text-muted">
+            The results above are points in time. Current ratings, every rated
+            contest, a submission heatmap, the topic breakdown and the badges
+            come straight from five platforms and refresh every half hour.
+          </p>
+          <span className="mt-6 inline-flex items-center gap-2 text-sm text-accent">
+            Open the live record
+            <span
+              aria-hidden="true"
+              className="transition-transform duration-300 group-hover:translate-x-1"
+            >
+              &rarr;
+            </span>
+          </span>
+        </Link>
       </Reveal>
     </Section>
   );

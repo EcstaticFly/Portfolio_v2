@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { Shell } from "@/components/section";
 import { site, socials } from "@/content/site";
 
@@ -13,7 +14,16 @@ export function SiteFooter() {
             </p>
           </div>
 
+          {/* The live record leads, and in ink rather than muted: it is
+              the only one of these that goes somewhere on this site, and
+              the footer is where a reader who went through the whole page
+              actually ends up. */}
           <ul className="flex flex-wrap gap-x-6 gap-y-2">
+            <li>
+              <Link href="/stats" className="link-rule text-xs text-ink">
+                Live record
+              </Link>
+            </li>
             {socials.map((s) => (
               <li key={s.label}>
                 <a

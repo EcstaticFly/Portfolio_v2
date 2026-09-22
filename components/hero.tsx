@@ -104,25 +104,59 @@ export function Hero({ live }: { live: HeroLiveStat[] }) {
                 </a>
               </StaggerItem>
 
+              {/* The figures are the invitation, not a footnote beside one.
+                  This used to be a bare <dl> with "Refreshed every half
+                  hour" under it — a line describing a cadence, which gave
+                  a reader no reason to think there was another page to go
+                  to. The whole block is now the link, in the same card
+                  language as the Experience tiles, so the one genuinely
+                  live thing above the fold also reads as a destination. */}
               {live.length > 0 ? (
-                <StaggerItem className="mt-10">
-                  <dl className="flex flex-wrap gap-x-10 gap-y-4">
-                    {live.map((stat) => (
-                      <div key={stat.label} className="flex flex-col-reverse">
-                        <dt className="mt-1 text-2xs text-muted">
-                          {stat.label}
-                        </dt>
-                        <dd className="font-display text-xl font-light text-accent">
-                          {stat.value}
-                        </dd>
-                      </div>
-                    ))}
-                  </dl>
+                <StaggerItem className="mt-6">
                   <Link
                     href="/stats"
-                    className="link-rule mt-4 inline-block text-xs text-muted"
+                    className="group block max-w-[30rem] rounded-2xl border border-line bg-surface/60 p-4 transition-all duration-300 hover:-translate-y-0.5 hover:border-accent hover:bg-surface sm:p-5"
                   >
-                    Refreshed every half hour
+                    {/* gap-x-8 rather than the 10 this used to carry: the
+                        card's own padding takes the difference back, and
+                        at 320px the figures still need room to wrap. */}
+                    <dl className="flex flex-wrap gap-x-8 gap-y-4">
+                      {live.map((stat) => (
+                        <div key={stat.label} className="flex flex-col-reverse">
+                          <dt className="mt-1 text-2xs text-muted">
+                            {stat.label}
+                          </dt>
+                          <dd className="font-display text-xl font-light text-accent">
+                            {stat.value}
+                          </dd>
+                        </div>
+                      ))}
+                    </dl>
+
+                    {/* One line rather than two stacked: the card sits at
+                        the bottom of a tall hero, and every row of height
+                        here pushes it past the fold on a 900px laptop. The
+                        cadence note trails the label in muted type and
+                        wraps on its own only below ~640px, where the hero
+                        is long past the fold anyway. */}
+                    <div className="mt-4 flex items-center justify-between gap-3 border-t border-line pt-3">
+                      <span className="min-w-0 text-xs text-ink transition-colors duration-300 group-hover:text-accent">
+                        See the full live record
+                        <span className="text-muted">
+                          {" "}
+                          · refreshed every half hour
+                        </span>
+                      </span>
+                      {/* A character, not an icon: no asset, no extra
+                          request, and the nudge on hover is a transform,
+                          so it stays on the compositor. */}
+                      <span
+                        aria-hidden="true"
+                        className="shrink-0 text-sm text-accent transition-transform duration-300 group-hover:translate-x-0.5"
+                      >
+                        &rarr;
+                      </span>
+                    </div>
                   </Link>
                 </StaggerItem>
               ) : null}
